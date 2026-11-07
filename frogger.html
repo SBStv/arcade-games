@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Finn the Frogger</title>
+<style>
+:root{--bg:#eef3e8;--fg:#17261a;--muted:#566a58;--btn:#d6e2cf;--btn-fg:#17261a;--ban:#2e7d32;--ban-fg:#f4fbef;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1a12;--fg:#e2efe0;--muted:#8fa591;--btn:#1f3023;--btn-fg:#e2efe0;--ban:#1d4d26;--ban-fg:#e8f5e2}}
+:root[data-theme="dark"]{--bg:#0f1a12;--fg:#e2efe0;--muted:#8fa591;--btn:#1f3023;--btn-fg:#e2efe0;--ban:#1d4d26;--ban-fg:#e8f5e2}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:flex;flex-direction:column;align-items:center}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--ban);z-index:10}
+.banner{width:100%;background:var(--ban);color:var(--ban-fg);text-align:center;padding:14px 16px}
+.banner h1{margin:0;font-size:clamp(24px,6vw,34px);font-weight:800}
+.wrap{width:100%;max-width:552px;padding:16px;margin:auto 0}
+.hud{display:flex;justify-content:space-between;gap:8px;margin-bottom:8px;font-size:15px;font-variant-numeric:tabular-nums}
+.hud span{color:var(--muted)}
+.hud b{color:var(--fg)}
+canvas{display:block;width:100%;height:auto;aspect-ratio:1;border-radius:10px;touch-action:none;background:#1a5c2a}
+.help{margin:10px 0 0;text-align:center;font-size:13px;color:var(--muted)}
+.pad{display:none;grid-template-columns:repeat(3,68px);grid-template-rows:repeat(2,56px);gap:8px;justify-content:center;margin-top:14px}
+@media (pointer:coarse){.pad{display:grid}}
+.pad button{font-size:22px;border:0;border-radius:12px;background:var(--btn);color:var(--btn-fg);touch-action:manipulation}
+.pad button:focus-visible{outline:3px solid var(--fg);outline-offset:2px}
+.snd{display:block;margin:10px auto 0;border:0;border-radius:8px;padding:6px 14px;font:inherit;font-size:13px;background:var(--btn);color:var(--btn-fg);cursor:pointer}
+.snd:focus-visible{outline:3px solid var(--fg);outline-offset:2px}
+.up{grid-column:2;grid-row:1}.left{grid-column:1;grid-row:2}.down{grid-column:2;grid-row:2}.right{grid-column:3;grid-row:2}
+</style>
+</head>
+<body>
+<header class="banner">
+  <h1>Finn the Frogger</h1>
+</header>
+<div class="wrap">
+  <div class="hud">
+    <span>Score <b id="score">0</b></span>
+    <span>Level <b id="level">1</b></span>
+    <span>Lives <b id="lives"></b></span>
+    <span>Best <b id="best">0</b></span>
+  </div>
+  <canvas id="g" width="520" height="520" aria-label="Finn the Frogger game board"></canvas>
+  <p class="help">Arrow keys or WASD to hop. Swipe or use the buttons on a touch screen.</p>
+  <button class="snd" id="snd" type="button">Sound: on</button>
+  <div class="pad">
+    <button class="up" data-x="0" data-y="-1" aria-label="Hop up">▲</button>
+    <button class="left" data-x="-1" data-y="0" aria-label="Hop left">◀</button>
+    <button class="down" data-x="0" data-y="1" aria-label="Hop down">▼</button>
+    <button class="right" data-x="1" data-y="0" aria-label="Hop right">▶</button>
+  </div>
+</div>
+<script>
+(() => {
+const T = 40, COLS = 13, W = T * COLS, H = T * 13;
+const cv = document.getElementById('g'), ctx = cv.getContext('2d');
+const dpr = Math.min(window.devicePixelRatio || 1, 2);
+cv.width = W * dpr; cv.height = H * dpr; ctx.scale(dpr, dpr);
+const $ = id => document.getElementById(id);
+const mod = (a, n) => ((a % n) + n) % n;
+const BAYS = [1, 4, 6, 8, 11];
+
+// Sounds, synthesized with Web Audio (no audio files needed)
+let muted = false, AC = null;
+function audio() {
+  if (muted) return null;
+  if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } }
+  if (AC.state === 'suspended') AC.resume();
+  return AC;
+}
+function tone(type, f0, f1, dur, vol, delay = 0, lp = 0) {
+  const a = audio(); if (!a) return;
+  const t = a.currentTime + delay, o = a.createOscillator(), g = a.createGain();
+  o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  let node = o;
+  if (lp) { const f = a.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = lp; o.connect(f); node = f; }
+  node.connect(g); g.connect(a.destination); o.start(t); o.stop(t + dur + 0.05);
+}
+function noise(dur, vol, f0, f1) {
+  const a = audio(); if (!a) return;
+  const t = a.currentTime, n = Math.floor(a.sampleRate * dur), buf = a.createBuffer(1, n, a.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+  const s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+  s.buffer = buf; f.type = 'lowpass';
+  f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  s.connect(f); f.connect(g); g.connect(a.destination); s.start(t);
+}
+const ribbit = () => { tone('sawtooth', 140, 240, 0.08, 0.14, 0, 800); tone('sawtooth', 190, 360, 0.11, 0.14, 0.1, 800); };
+const splash = () => { noise(0.5, 0.28, 5000, 400); tone('sine', 420, 900, 0.09, 0.15, 0.06); tone('sine', 360, 760, 0.08, 0.12, 0.18); };
+const hit = () => { noise(0.3, 0.4, 2500, 150); tone('sawtooth', 260, 50, 0.4, 0.2); };
+const plop = () => tone('sine', 520, 110, 0.3, 0.18);
+const hop = () => tone('sawtooth', 170, 290, 0.07, 0.12, 0, 800);
+const chomp = () => { noise(0.15, 0.4, 3000, 300); tone('square', 120, 60, 0.12, 0.2); tone('square', 110, 50, 0.12, 0.2, 0.14); };
+const boing = () => { tone('sine', 220, 880, 0.18, 0.18); noise(0.08, 0.2, 4000, 1500); };
+
+// Music: a looping synth track (kick, clap, hats, bass, arpeggio) scheduled with Web Audio
+const STEP = 60 / 132 / 4;
+const ROOTS = [55, 43.65, 65.41, 49];
+const CHORDS = [[440, 523.25, 659.25], [349.23, 440, 523.25], [523.25, 659.25, 783.99], [392, 493.88, 587.33]];
+const ARP = [0, 1, 2, 1, 0, 1, 2, 1, 0, 1, 2, 1, 0, 2, 1, 2];
+let mus = null, nbuf = null, timer = null, step = 0, nextT = 0;
+function mnote(type, f, t, dur, vol, lp) {
+  const a = AC, o = a.createOscillator(), g = a.createGain(), lf = a.createBiquadFilter();
+  o.type = type; o.frequency.setValueAtTime(f, t);
+  lf.type = 'lowpass'; lf.frequency.value = lp;
+  g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + 0.005); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(lf); lf.connect(g); g.connect(mus); o.start(t); o.stop(t + dur + 0.02);
+}
+function mkick(t) {
+  const a = AC, o = a.createOscillator(), g = a.createGain();
+  o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.12);
+  g.gain.setValueAtTime(0.8, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
+  o.connect(g); g.connect(mus); o.start(t); o.stop(t + 0.22);
+}
+function mnoise(t, dur, vol, ftype, freq) {
+  const a = AC, s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+  s.buffer = nbuf; f.type = ftype; f.frequency.value = freq;
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  s.connect(f); f.connect(g); g.connect(mus); s.start(t); s.stop(t + dur + 0.02);
+}
+function playStep(s, t) {
+  const bar = (s >> 4) & 3, i = s & 15;
+  if (i % 4 === 0) mkick(t);
+  if (i % 4 === 2) mnoise(t, 0.05, 0.25, 'highpass', 7000);
+  else if (i % 2 === 1) mnoise(t, 0.03, 0.08, 'highpass', 9000);
+  if (i === 4 || i === 12) mnoise(t, 0.12, 0.35, 'bandpass', 1800);
+  if (i % 2 === 0) mnote('sawtooth', ROOTS[bar] * (i === 6 || i === 14 ? 2 : 1), t, STEP * 1.6, 0.35, 500);
+  mnote('square', CHORDS[bar][ARP[i]], t, STEP * 0.9, 0.07, 2400);
+}
+function schedule() {
+  if (nextT < AC.currentTime - 0.2) nextT = AC.currentTime + 0.05;
+  while (nextT < AC.currentTime + 0.15) { playStep(step, nextT); step = (step + 1) % 64; nextT += STEP; }
+}
+function startMusic() {
+  const a = audio(); if (!a || timer) return;
+  if (!mus) { mus = a.createGain(); mus.gain.value = 0.35; mus.connect(a.destination); }
+  if (!nbuf) {
+    nbuf = a.createBuffer(1, Math.floor(a.sampleRate * 0.3), a.sampleRate);
+    const d = nbuf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
+  step = 0; nextT = a.currentTime + 0.05;
+  timer = setInterval(schedule, 25);
+}
+function stopMusic() { clearInterval(timer); timer = null; }
+
+// Lanes: row, kind, length (tiles), spacing (tiles), speed (tiles/sec, sign = direction)
+const LANES = [
+  { row: 1, kind: 'log', len: 4, p: 7, v: 1.2 },
+  { row: 2, kind: 'turtle', len: 3, p: 5, v: -1.5 },
+  { row: 3, kind: 'log', len: 6, p: 10, v: 1.8 },
+  { row: 4, kind: 'log', len: 3, p: 6, v: -1.0 },
+  { row: 5, kind: 'pad', len: 1, p: 3, v: 0.9 },
+  { row: 7, kind: 'car', len: 1, p: 4, v: -1.8, color: '#e74c3c' },
+  { row: 8, kind: 'car', len: 1, p: 3.5, v: 2.4, color: '#f1c40f' },
+  { row: 9, kind: 'car', len: 1, p: 5, v: -3.0, color: '#9b59b6' },
+  { row: 10, kind: 'car', len: 2, p: 6, v: 1.4, color: '#ecf0f1' },
+  { row: 11, kind: 'car', len: 3, p: 8, v: -1.2, color: '#e67e22' },
+];
+LANES.forEach(l => {
+  l.w = l.len * T;
+  l.n = Math.ceil((COLS + l.len) / l.p);
+  l.span = l.n * l.p * T;
+  l.xs = Array.from({ length: l.n }, (_, i) => i * l.p * T + l.row * 70);
+  if (l.kind === 'pad') l.ps = l.xs.map(() => ({ stand: 0, sink: false, fade: 0, gone: 0, on: false }));
+  if (l.kind === 'log') l.cr = l.xs.map((_, i) => i === 1);
+  if (l.kind === 'log') l.cs = l.xs.map(() => ({ stand: 0, sink: false, fade: 0, gone: 0, on: false }));
+});
+
+let state = 'ready', frog, maxRow, score = 0, lives = 3, level = 1, bays = [], deadT = 0, best = 0, amb = null, ambT = 6;
+try { best = +localStorage.getItem('frogger-best') || 0; } catch (e) {}
+
+function spawn() { frog = { x: 6 * T, row: 12, cd: 0 }; maxRow = 12; }
+function hud() {
+  $('score').textContent = score;
+  $('level').textContent = level;
+  $('lives').textContent = lives > 0 ? '♥'.repeat(lives) : '–';
+  $('best').textContent = Math.max(best, score);
+}
+function start() { score = 0; lives = 3; level = 1; bays = []; amb = null; ambT = 6; spawn(); state = 'playing'; hud(); startMusic(); }
+function saveBest() {
+  if (score > best) { best = score; try { localStorage.setItem('frogger-best', best); } catch (e) {} }
+  hud();
+}
+function die(kind) { if (state !== 'playing') return; state = 'dead'; deadT = 0.8; lives--; if (kind === 'hit') hit(); else if (kind === 'eaten') chomp(); else plop(); hud(); }
+
+function reachTop() {
+  const cx = frog.x + T / 2;
+  const b = BAYS.find(c => Math.abs(cx - (c * T + T / 2)) < T * 0.6);
+  if (b === undefined || bays.includes(b)) return die();
+  bays.push(b); score += 50; splash();
+  if (bays.length === BAYS.length) { level++; bays = []; score += 200; }
+  spawn();
+}
+
+function move(dx, dy) {
+  if (state !== 'playing') return;
+  const ox = frog.x, orow = frog.row;
+  frog.cd = 0;
+  frog.x = Math.max(0, Math.min(W - T, frog.x + dx * T));
+  frog.row = Math.max(0, Math.min(12, frog.row + dy));
+  if (frog.row < maxRow) { maxRow = frog.row; score += 10; }
+  if (dy < 0 && frog.row > 0) ribbit();
+  else if (frog.row > 0 && (frog.x !== ox || frog.row !== orow)) hop();
+  if (frog.row === 0) reachTop();
+  hud();
+}
+function act(dx, dy) { if (state === 'ready' || state === 'over') start(); else move(dx, dy); }
+
+const siren = () => { for (let i = 0; i < 4; i++) tone('sine', i % 2 ? 560 : 760, i % 2 ? 560 : 760, 0.28, 0.1, i * 0.3); };
+
+// Ambulance: warns with a siren and flashing edge, then speeds across, weaving between lanes to dodge cars
+function updateAmb(dt) {
+  if (!amb) {
+    if (state === 'playing' && (ambT -= dt) <= 0) {
+      const dir = Math.random() < 0.5 ? 1 : -1, row = 7 + (Math.random() * 5 | 0);
+      amb = { dir, x: dir > 0 ? -80 : W, y: row, to: row, w: 80, wt: 0.3, warn: 1.2 };
+      siren();
+    }
+    return;
+  }
+  const a = amb;
+  if (a.warn > 0) { a.warn -= dt; return; }
+  a.x += a.dir * 7 * T * (1 + (level - 1) * 0.1) * dt;
+  const clear = r => {
+    const ln = LANES.find(q => q.row === r);
+    const lo = a.x - (a.dir < 0 ? 130 : 10), hi = a.x + a.w + (a.dir > 0 ? 130 : 10);
+    return ln.xs.every(cx => cx + ln.w < lo || cx > hi);
+  };
+  a.wt -= dt;
+  if (a.wt <= 0 || !clear(a.to)) {
+    const opts = [a.to - 1, a.to + 1].filter(r => r >= 7 && r <= 11 && clear(r));
+    if (opts.length) { a.to = opts[Math.random() * opts.length | 0]; a.wt = 0.35 + Math.random() * 0.35; }
+    else if (a.wt <= 0) a.wt = 0.2;
+  }
+  a.y += (a.to - a.y) * Math.min(1, dt * 6);
+  if (state === 'playing' && frog.row >= 7 && frog.row <= 11 && Math.abs(a.y - frog.row) < 0.7 && frog.x + 9 < a.x + a.w && frog.x + T - 9 > a.x) die('hit');
+  if ((a.dir > 0 && a.x > W) || (a.dir < 0 && a.x + a.w < 0)) { amb = null; ambT = 8 + Math.random() * 6; }
+}
+
+// Crocodiles: when a log wraps around off-screen it may come back as a croc (never two side by side)
+// Timer for a platform that sinks when stood on: after lim seconds it fades over ft seconds, stays gone for 4s, then returns
+function tick(p, dt, lim, ft) {
+  if (p.on) { p.stand += dt; p.on = false; } else if (!p.sink) p.stand = 0;
+  if (!p.sink && p.stand >= lim) p.sink = true;
+  if (p.sink) {
+    if (p.fade < 1) p.fade = Math.min(1, p.fade + dt / ft);
+    else if ((p.gone += dt) >= 4) { p.sink = false; p.gone = 0; p.stand = 0; }
+  } else if (p.fade > 0) p.fade = Math.max(0, p.fade - dt / 0.5);
+}
+function reroll(l, i) {
+  const nb = [(i + 1) % l.n, (i + l.n - 1) % l.n];
+  l.cr[i] = !nb.some(j => l.cr[j]) && Math.random() < Math.min(0.4, 0.22 + level * 0.03);
+}
+
+function update(dt) {
+  const m = 1 + (level - 1) * 0.15;
+  for (const l of LANES) {
+    const d = l.v * T * m * dt;
+    for (let i = 0; i < l.n; i++) {
+      const o = l.xs[i];
+      l.xs[i] = mod(o + d + l.w, l.span) - l.w;
+      if (l.cr && (d > 0 ? l.xs[i] < o : l.xs[i] > o)) { reroll(l, i); l.cs[i] = { stand: 0, sink: false, fade: 0, gone: 0, on: false }; }
+      if (l.cs && l.cr[i]) tick(l.cs[i], dt, 2, 0.8);
+    }
+    if (l.kind === 'pad') l.ps.forEach(p => {
+      if (p.on) { p.stand += dt; p.on = false; } else if (!p.sink) p.stand = 0;
+      if (!p.sink && p.stand >= 3) p.sink = true;
+      if (p.sink) {
+        if (p.fade < 1) p.fade = Math.min(1, p.fade + dt / 1.2);
+        else if ((p.gone += dt) >= 4) { p.sink = false; p.gone = 0; p.stand = 0; }
+      } else if (p.fade > 0) p.fade = Math.max(0, p.fade - dt / 0.5);
+    });
+  }
+  updateAmb(dt);
+  if (state === 'dead') {
+    deadT -= dt;
+    if (deadT <= 0) {
+      if (lives <= 0) { state = 'over'; stopMusic(); saveBest(); } else { spawn(); state = 'playing'; }
+    }
+    return;
+  }
+  if (state !== 'playing') return;
+  const lane = LANES.find(l => l.row === frog.row);
+  if (!lane) return;
+  if (lane.kind === 'car') {
+    if (lane.xs.some(x => frog.x + 9 < x + lane.w && frog.x + T - 9 > x)) die('hit');
+  } else {
+    const cx = frog.x + T / 2;
+    const k = lane.xs.findIndex((x, i) => cx > x + 2 && cx < x + lane.w - 2 && (lane.kind !== 'pad' || lane.ps[i].fade < 0.9) && !(lane.cr && lane.cr[i] && lane.cs[i].fade >= 0.9));
+    if (k < 0) return die();
+    if (lane.kind === 'pad') lane.ps[k].on = true;
+    if (lane.kind === 'log' && lane.cr[k]) {
+      const x = lane.xs[k], dist = lane.v > 0 ? x + lane.w - cx : cx - x;
+      if (dist < 38) {
+        frog.cd += dt;
+        if (frog.cd >= 0.25) { frog.eaten = true; return die('eaten'); }
+      } else if (dist > lane.w - 30) {
+        frog.cd += dt;
+        if (frog.cd >= 0.15) { boing(); frog.row = 9; frog.cd = 0; return; }
+      } else { lane.cs[k].on = true; frog.cd = 0; }
+    }
+    frog.x += lane.v * T * m * dt;
+    if (frog.x + T / 2 < 0 || frog.x + T / 2 > W) die();
+  }
+}
+
+function rr(x, y, w, h, r) {
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h);
+  ctx.fill();
+}
+function circle(x, y, r, color) { ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); }
+function drawPad(x, y, p) {
+  const cx = x + T / 2, cy = y + T / 2, k = Math.min(1, p.stand / 3);
+  ctx.globalAlpha = Math.max(0, 1 - p.fade);
+  ctx.fillStyle = 'rgb(' + (60 + 154 * k | 0) + ',' + (179 - 3 * k | 0) + ',' + (90 - 32 * k | 0) + ')';
+  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, T * 0.43 * (1 - 0.25 * p.fade), 0.3, 2 * Math.PI - 0.3); ctx.closePath(); ctx.fill();
+  ctx.globalAlpha = 1;
+}
+function drawAmb() {
+  const a = amb; if (!a) return;
+  const flash = ((performance.now() / 120) | 0) % 2;
+  if (a.warn > 0) {
+    ctx.fillStyle = flash ? '#ff2d2d' : '#2d6bff';
+    ctx.fillRect(a.dir > 0 ? 0 : W - 8, 7 * T, 8, 5 * T);
+    return;
+  }
+  const x = a.x, y = a.y * T + 5, w = a.w, h = T - 10;
+  ctx.fillStyle = '#fff'; rr(x, y, w, h, 6);
+  ctx.fillStyle = '#d62d20';
+  ctx.fillRect(x + 4, y + h * 0.62, w - 8, 3);
+  const cx = x + (a.dir > 0 ? w * 0.38 : w * 0.62), cy = y + h * 0.32;
+  ctx.fillRect(cx - 6, cy - 2, 12, 4); ctx.fillRect(cx - 2, cy - 6, 4, 12);
+  ctx.fillStyle = 'rgba(20,30,40,.85)';
+  ctx.fillRect(a.dir > 0 ? x + w - 17 : x + 5, y + 4, 12, h - 12);
+  ctx.fillStyle = flash ? '#ff2d2d' : '#2d6bff'; ctx.fillRect(x + w / 2 - 9, y - 3, 8, 5);
+  ctx.fillStyle = flash ? '#2d6bff' : '#ff2d2d'; ctx.fillRect(x + w / 2 + 1, y - 3, 8, 5);
+}
+function drawCroc(x, y, l, i) {
+  const w = l.w, dir = l.v > 0 ? 1 : -1, hx = dir > 0 ? x + w - 38 : x;
+  const cy = y + T / 2, fcx = frog.x + T / 2;
+  const st = l.cs[i];
+  ctx.globalAlpha = Math.max(0, 1 - st.fade);
+  const dist = dir > 0 ? x + w - fcx : fcx - x;
+  const on = frog.row === l.row && fcx > x && fcx < x + w && dist < 38 && (state === 'playing' || frog.eaten);
+  const g = 12 * (on ? Math.max(0, 1 - frog.cd / 0.25) : 0.6 + 0.4 * Math.sin(performance.now() / 260 + i * 2));
+  ctx.fillStyle = '#3f7d34'; rr(x, y + 8, w, T - 16, 9);
+  ctx.fillStyle = '#2d5e26';
+  for (let k = 10; k < w - 50; k += 14) ctx.fillRect(x + (dir > 0 ? k : k + 40), y + 12, 6, 4);
+  ctx.fillStyle = '#7a1f1f'; ctx.fillRect(hx, cy - g / 2, 38, g);
+  ctx.fillStyle = '#3f7d34';
+  ctx.fillRect(hx, y + 8, 38, cy - g / 2 - (y + 8));
+  ctx.fillRect(hx, cy + g / 2, 38, y + T - 8 - (cy + g / 2));
+  ctx.fillStyle = '#fff';
+  for (let t = 0; t < 4; t++) { const tx = hx + 4 + t * 9; ctx.fillRect(tx, cy - g / 2 - 1, 4, 4); ctx.fillRect(tx, cy + g / 2 - 3, 4, 4); }
+  ctx.fillStyle = '#2d5e26'; rr(dir > 0 ? x : x + w - 30, y + 13, 30, T - 26, 6);
+  ctx.fillStyle = '#f4d03f'; ctx.beginPath(); ctx.arc(dir > 0 ? hx + 4 : hx + 30, y + 12, 3.5, 0, 7); ctx.fill();
+  ctx.globalAlpha = 1;
+  if (st.stand > 0.3) {
+    ctx.fillStyle = 'rgba(255,255,255,.7)';
+    for (let b = 0; b < 3; b++) { ctx.beginPath(); ctx.arc(x + w / 2 + (b - 1) * 16, y + 8 + (performance.now() / 180 + b * 5) % 8, 2.2, 0, 7); ctx.fill(); }
+  }
+}
+function drawFrog(x, y, color) {
+  const cx = x + T / 2, cy = y + T / 2;
+  circle(cx, cy + 2, T * 0.34, color);
+  circle(cx - 8, cy - 9, 5.5, color); circle(cx + 8, cy - 9, 5.5, color);
+  circle(cx - 8, cy - 10, 3, '#fff'); circle(cx + 8, cy - 10, 3, '#fff');
+  circle(cx - 8, cy - 11, 1.5, '#111'); circle(cx + 8, cy - 11, 1.5, '#111');
+}
+function banner(title, sub) {
+  ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(0, 0, W, H);
+  ctx.textAlign = 'center'; ctx.fillStyle = '#7ee05a';
+  ctx.font = 'bold 40px system-ui, sans-serif'; ctx.fillText(title, W / 2, H / 2 - 8);
+  ctx.fillStyle = '#fff'; ctx.font = '18px system-ui, sans-serif'; ctx.fillText(sub, W / 2, H / 2 + 28);
+}
+
+function draw() {
+  ctx.fillStyle = '#1a5c2a'; ctx.fillRect(0, 0, W, T);
+  ctx.fillStyle = '#1c5a99'; ctx.fillRect(0, T, W, 5 * T);
+  ctx.fillStyle = '#3f8f3f'; ctx.fillRect(0, 6 * T, W, T);
+  ctx.fillStyle = '#2b2f36'; ctx.fillRect(0, 7 * T, W, 5 * T);
+  ctx.fillStyle = '#3f8f3f'; ctx.fillRect(0, 12 * T, W, T);
+  ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 2; ctx.setLineDash([14, 14]);
+  for (let r = 8; r <= 11; r++) { ctx.beginPath(); ctx.moveTo(0, r * T); ctx.lineTo(W, r * T); ctx.stroke(); }
+  ctx.setLineDash([]);
+  for (const c of BAYS) {
+    for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) {
+      ctx.fillStyle = (i + j) % 2 ? '#111' : '#fff';
+      ctx.fillRect(c * T + 4 + i * 8, 4 + j * 8, 8, 8);
+    }
+    if (bays.includes(c)) { ctx.fillStyle = 'rgba(26,92,42,.7)'; ctx.fillRect(c * T + 4, 4, 32, 32); drawFrog(c * T, 0, '#7ee05a'); }
+  }
+  for (const l of LANES) {
+    const y = l.row * T;
+    for (const [i, x] of l.xs.entries()) {
+      if (l.kind === 'log' && l.cr[i]) {
+        drawCroc(x, y, l, i);
+      } else if (l.kind === 'log') {
+        ctx.fillStyle = '#8a5a2b'; rr(x, y + 7, l.w, T - 14, 8);
+        ctx.fillStyle = '#a8743d'; rr(x + 4, y + 11, l.w - 8, 5, 3);
+      } else if (l.kind === 'pad') {
+        drawPad(x, y, l.ps[i]);
+      } else if (l.kind === 'turtle') {
+        for (let i = 0; i < l.len; i++) {
+          circle(x + i * T + T / 2, y + T / 2, T * 0.38, '#2e9e5b');
+          circle(x + i * T + T / 2, y + T / 2, T * 0.22, '#1f7a42');
+        }
+      } else {
+        ctx.fillStyle = l.color; rr(x + 2, y + 6, l.w - 4, T - 12, 6);
+        ctx.fillStyle = 'rgba(20,30,40,.8)';
+        const fx = l.v > 0 ? x + l.w - T * 0.45 : x + T * 0.15;
+        ctx.fillRect(fx, y + 10, T * 0.3, T - 20);
+      }
+    }
+  }
+  if (frog) {
+    const y = frog.row * T;
+    if (state === 'dead' && frog.eaten) {
+      // swallowed: draw nothing
+    } else if (state === 'dead') {
+      drawFrog(frog.x, y, '#e74c3c');
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.beginPath();
+      ctx.moveTo(frog.x + 10, y + 12); ctx.lineTo(frog.x + T - 10, y + T - 8);
+      ctx.moveTo(frog.x + T - 10, y + 12); ctx.lineTo(frog.x + 10, y + T - 8);
+      ctx.stroke();
+    } else drawFrog(frog.x, y, '#7ee05a');
+  }
+  drawAmb();
+  if (state === 'ready') banner('Finn the Frogger', 'Press Space or tap to start');
+  if (state === 'over') banner('GAME OVER', 'Score ' + score + '. Press Space or tap to play again');
+}
+
+const KEYS = { ArrowUp: [0, -1], w: [0, -1], ArrowDown: [0, 1], s: [0, 1], ArrowLeft: [-1, 0], a: [-1, 0], ArrowRight: [1, 0], d: [1, 0] };
+addEventListener('keydown', e => {
+  const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+  if (k in KEYS || k === ' ') e.preventDefault();
+  if (e.repeat) return;
+  if (state === 'ready' || state === 'over') { if (k === ' ' || k === 'Enter') start(); return; }
+  if (KEYS[k]) move(...KEYS[k]);
+});
+cv.addEventListener('pointerdown', () => { if (state === 'ready' || state === 'over') start(); });
+let sx = 0, sy = 0;
+cv.addEventListener('touchstart', e => { const t = e.changedTouches[0]; sx = t.clientX; sy = t.clientY; }, { passive: true });
+cv.addEventListener('touchend', e => {
+  const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+  if (Math.max(Math.abs(dx), Math.abs(dy)) < 24) return;
+  if (Math.abs(dx) > Math.abs(dy)) move(Math.sign(dx), 0); else move(0, Math.sign(dy));
+});
+document.querySelectorAll('.pad button').forEach(b =>
+  b.addEventListener('pointerdown', e => { e.preventDefault(); act(+b.dataset.x, +b.dataset.y); }));
+
+const snd = $('snd');
+snd.addEventListener('click', () => {
+  muted = !muted; snd.textContent = 'Sound: ' + (muted ? 'off' : 'on'); snd.blur();
+  if (muted) stopMusic(); else if (state === 'playing' || state === 'dead') startMusic();
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) stopMusic(); else if (!muted && (state === 'playing' || state === 'dead')) startMusic();
+});
+
+spawn(); hud();
+let last = 0;
+function frame(t) {
+  const dt = Math.min(0.05, (t - last) / 1000 || 0); last = t;
+  update(dt); draw(); requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

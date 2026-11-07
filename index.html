@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#2e7d32">
+  <meta name="description" content="Play Finn the Frogger, a classic-style arcade game. Hop through traffic and across the river to reach safety!">
+  <title>Finn the Frogger — Classic Arcade Game</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: #eef3e8;
+      color: #17261a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: radial-gradient(ellipse at 50% 0%, #d7edcf, #eef3e8 65%);
+    }
+    main {
+      width: min(100%, 620px);
+      padding: clamp(28px, 7vw, 56px);
+      border: 1px solid #c8d8c2;
+      border-radius: 24px;
+      background: rgba(255, 255, 255, .76);
+      box-shadow: 0 20px 60px rgba(23, 38, 26, .12);
+      text-align: center;
+    }
+    .frog { font-size: clamp(52px, 12vw, 76px); line-height: 1; }
+    h1 { margin: 18px 0 10px; font-size: clamp(34px, 8vw, 54px); line-height: 1.05; }
+    p { max-width: 440px; margin: 0 auto; color: #566a58; font-size: 17px; line-height: 1.65; }
+    .play {
+      display: inline-block;
+      margin-top: 28px;
+      padding: 14px 28px;
+      border-radius: 12px;
+      background: #2e7d32;
+      color: #fff;
+      font-weight: 750;
+      font-size: 18px;
+      text-decoration: none;
+      box-shadow: 0 5px 0 #205b24;
+      transition: transform .15s, box-shadow .15s, background .15s;
+    }
+    .play:hover { background: #256b2a; transform: translateY(2px); box-shadow: 0 3px 0 #205b24; }
+    .play:focus-visible { outline: 3px solid #17261a; outline-offset: 4px; }
+    .how-to { margin-top: 28px; font-size: 14px; }
+    @media (prefers-color-scheme: dark) {
+      :root { background: #0f1a12; color: #e2efe0; }
+      body { background: radial-gradient(ellipse at 50% 0%, #1d3821, #0f1a12 65%); }
+      main { background: rgba(25, 43, 29, .88); border-color: #35523a; }
+      p { color: #a7b9a8; }
+      .play:focus-visible { outline-color: #e2efe0; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="frog" aria-hidden="true">🐸</div>
+    <h1>Finn the Frogger</h1>
+    <p>A classic-style arcade hopping challenge! Guide Finn across busy roads and the river, dodge danger, and reach all five home bays.</p>
+    <a class="play" href="frogger.html">Play Finn the Frogger</a>
+    <p class="how-to">Use the arrow keys or WASD to hop. On touch screens, swipe or use the on-screen buttons.</p>
+  </main>
+</body>
+</html>

@@ -81,6 +81,11 @@ canvas{display:block;width:100%;height:auto;aspect-ratio:1;border-radius:10px;to
   </div>
   <div class="board">
     <canvas id="g" width="520" height="520" aria-label="Finn the Frogger game board"></canvas>
+    <div class="entry confirm" id="confirm" role="alertdialog" aria-labelledby="confirmh" hidden>
+      <h2 id="confirmh">Restart on this level?</h2>
+      <p>Your current game will be lost.</p>
+      <div class="row"><button type="button" id="cgo">Restart</button><button type="button" class="sec" id="cno">Keep playing</button></div>
+    </div>
     <form class="entry" id="entry" hidden autocomplete="off" aria-labelledby="entryh">
       <h2 id="entryh">You made the leaderboard!</h2>
       <p id="entryinfo"></p>
@@ -122,7 +127,9 @@ const dpr = Math.min(window.devicePixelRatio || 1, 2);
 cv.width = W * dpr; cv.height = H * dpr; ctx.scale(dpr, dpr);
 const $ = id => document.getElementById(id);
 const mod = (a, n) => ((a % n) + n) % n;
-const BAYS = [1, 4, 6, 8, 11];
+let BAYS = [1, 4, 6, 8, 11];
+// Home spaces for each count of goals, spread across the 13 columns
+function bayCols(n) { return ({ 2: [3, 9], 3: [2, 6, 10], 4: [1, 4, 8, 11], 5: [1, 4, 6, 8, 11], 6: [0, 2, 5, 7, 10, 12], 7: [0, 2, 4, 6, 8, 10, 12] })[n]; }
 
 // Sounds, synthesized with Web Audio (no audio files needed)
 let muted = false, AC = null;
@@ -168,11 +175,7 @@ const fanfare = () => {
 };
 
 // Music: a looping synth track (kick, clap, hats, bass, arpeggio) scheduled with Web Audio
-const STEP = 60 / 132 / 4;
-const ROOTS = [55, 43.65, 65.41, 49];
-const CHORDS = [[440, 523.25, 659.25], [349.23, 440, 523.25], [523.25, 659.25, 783.99], [392, 493.88, 587.33]];
-const ARP = [0, 1, 2, 1, 0, 1, 2, 1, 0, 1, 2, 1, 0, 2, 1, 2];
-let mus = null, nbuf = null, timer = null, step = 0, nextT = 0;
+let mus = null, nbuf = null, timer = null, step = 0, nextT = 0, trk = null, sd = 0;
 function mnote(type, f, t, dur, vol, lp) {
   const a = AC, o = a.createOscillator(), g = a.createGain(), lf = a.createBiquadFilter();
   o.type = type; o.frequency.setValueAtTime(f, t);
@@ -180,10 +183,10 @@ function mnote(type, f, t, dur, vol, lp) {
   g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + 0.005); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
   o.connect(lf); lf.connect(g); g.connect(mus); o.start(t); o.stop(t + dur + 0.02);
 }
-function mkick(t) {
+function mkick(t, v = 0.8) {
   const a = AC, o = a.createOscillator(), g = a.createGain();
   o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.12);
-  g.gain.setValueAtTime(0.8, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
+  g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
   o.connect(g); g.connect(mus); o.start(t); o.stop(t + 0.22);
 }
 function mnoise(t, dur, vol, ftype, freq) {
@@ -192,18 +195,76 @@ function mnoise(t, dur, vol, ftype, freq) {
   g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
   s.connect(f); f.connect(g); g.connect(mus); s.start(t); s.stop(t + dur + 0.02);
 }
-function playStep(s, t) {
-  const bar = (s >> 4) & 3, i = s & 15;
-  if (i % 4 === 0) mkick(t);
-  if (i % 4 === 2) mnoise(t, 0.05, 0.25, 'highpass', 7000);
-  else if (i % 2 === 1) mnoise(t, 0.03, 0.08, 'highpass', 9000);
-  if (i === 4 || i === 12) mnoise(t, 0.12, 0.35, 'bandpass', 1800);
-  if (i % 2 === 0) mnote('sawtooth', ROOTS[bar] * (i === 6 || i === 14 ? 2 : 1), t, STEP * 1.6, 0.35, 500);
-  mnote('square', CHORDS[bar][ARP[i]], t, STEP * 0.9, 0.07, 2400);
-}
+// One looping 64-step track per level. Level 3 is the original track; levels above 5 reuse level 5's.
+const R1 = [65.41, 49, 55, 43.65];
+const C1 = [[523.25, 659.25, 783.99], [392, 493.88, 587.33], [440, 523.25, 659.25], [349.23, 440, 523.25]];
+const A1 = [0, 1, 2, 1, 2, 1, 0, 1, 0, 1, 2, 1, 2, 1, 2, 0];
+const R2 = [73.42, 58.27, 87.31, 65.41];
+const C2 = [[349.23, 440, 587.33], [349.23, 466.16, 587.33], [349.23, 440, 523.25], [392, 523.25, 659.25]];
+const A2 = [0, 2, 1, 2, 0, 2, 1, 2, 0, 2, 1, 2, 1, 2, 0, 1];
+const R3 = [55, 43.65, 65.41, 49];
+const C3 = [[440, 523.25, 659.25], [349.23, 440, 523.25], [523.25, 659.25, 783.99], [392, 493.88, 587.33]];
+const A3 = [0, 1, 2, 1, 0, 1, 2, 1, 0, 1, 2, 1, 0, 2, 1, 2];
+const R4 = [65.41, 51.91, 77.78, 58.27];
+const C4 = [[523.25, 622.25, 783.99], [415.3, 523.25, 622.25], [392, 466.16, 622.25], [466.16, 587.33, 698.46]];
+const R5 = [41.2, 65.41, 49, 73.42];
+const C5 = [[659.25, 783.99, 987.77], [523.25, 659.25, 783.99], [587.33, 783.99, 987.77], [587.33, 739.99, 880]];
+const A5 = [0, 1, 2, 1, 2, 1, 0, 2, 0, 1, 2, 1, 2, 1, 2, 1];
+const TRACKS = [
+  // 1 Sunny Meadow: relaxed and bouncy, major key
+  { bpm: 104, step(s, t, sd) {
+    const bar = (s >> 4) & 3, i = s & 15;
+    if (i === 0 || i === 8) mkick(t, 0.4);
+    if (i % 4 === 2) mnoise(t, 0.03, 0.07, 'highpass', 9000);
+    if (i === 0 || i === 8) mnote('triangle', R1[bar] * (i === 8 ? 1.5 : 1), t, sd * 3, 0.45, 700);
+    if (i % 2 === 0) mnote('triangle', C1[bar][A1[i]], t, sd * 1.6, 0.14, 3000);
+    if (i === 6 || i === 14) mnote('sine', C1[bar][2] * 2, t, sd * 2, 0.08, 4000);
+  } },
+  // 2 Rush Hour: funky four-on-the-floor with a syncopated bass
+  { bpm: 120, step(s, t, sd) {
+    const bar = (s >> 4) & 3, i = s & 15;
+    if (i % 4 === 0) mkick(t, 0.7);
+    if (i === 4 || i === 12) mnoise(t, 0.12, 0.3, 'bandpass', 1800);
+    if (i % 4 === 2) mnoise(t, 0.05, 0.2, 'highpass', 7000); else if (i % 2 === 1) mnoise(t, 0.03, 0.06, 'highpass', 9000);
+    if (i === 0 || i === 3 || i === 6 || i === 8 || i === 11 || i === 14) mnote('sawtooth', R2[bar] * (i === 6 || i === 14 ? 2 : 1), t, sd * 1.4, 0.35, 600);
+    mnote('square', C2[bar][A2[i]], t, sd * 0.8, 0.06, 2200);
+    if (i === 0 || i === 10) C2[bar].forEach(f => mnote('sawtooth', f, t, sd * 2, 0.05, 1800));
+  } },
+  // 3 The original track
+  { bpm: 132, step(s, t, sd) {
+    const bar = (s >> 4) & 3, i = s & 15;
+    if (i % 4 === 0) mkick(t);
+    if (i % 4 === 2) mnoise(t, 0.05, 0.25, 'highpass', 7000);
+    else if (i % 2 === 1) mnoise(t, 0.03, 0.08, 'highpass', 9000);
+    if (i === 4 || i === 12) mnoise(t, 0.12, 0.35, 'bandpass', 1800);
+    if (i % 2 === 0) mnote('sawtooth', R3[bar] * (i === 6 || i === 14 ? 2 : 1), t, sd * 1.6, 0.35, 500);
+    mnote('square', C3[bar][A3[i]], t, sd * 0.9, 0.07, 2400);
+  } },
+  // 4 Night Shift: dark synthwave, driving 8th-note bass under a slow pad
+  { bpm: 108, step(s, t, sd) {
+    const bar = (s >> 4) & 3, i = s & 15;
+    if (i % 4 === 0) mkick(t, 0.8);
+    if (i === 4 || i === 12) mnoise(t, 0.18, 0.3, 'bandpass', 1500);
+    if (i % 4 === 2) mnoise(t, 0.1, 0.18, 'highpass', 7000);
+    if (i % 2 === 0) mnote('sawtooth', R4[bar] * (i === 14 ? 2 : 1), t, sd * 1.5, 0.38, 380);
+    if (i === 0) C4[bar].forEach(f => mnote('sawtooth', f, t, sd * 15, 0.03, 900));
+    if (i === 0 || i === 3 || i === 6 || i === 10 || i === 12 || i === 14) mnote('sawtooth', C4[bar][(i >> 1) % 3] * 2, t, sd * 1.8, 0.05, 1600);
+  } },
+  // 5 Frog Fever: fast and relentless
+  { bpm: 156, step(s, t, sd) {
+    const bar = (s >> 4) & 3, i = s & 15;
+    if (i % 4 === 0) mkick(t, 0.85); else if (i === 10) mkick(t, 0.6);
+    if (i === 4 || i === 12) mnoise(t, 0.1, 0.35, 'bandpass', 2000);
+    if (i % 4 === 2) mnoise(t, 0.05, 0.25, 'highpass', 7000); else if (i % 2 === 1) mnoise(t, 0.025, 0.08, 'highpass', 9500);
+    if (i % 2 === 0) mnote('sawtooth', R5[bar] * (i % 4 === 2 ? 2 : 1), t, sd * 1.2, 0.32, 520);
+    mnote('square', C5[bar][A5[i]], t, sd * 0.9, 0.065, 2800);
+    if (bar === 3 && i === 13) mnoise(t, sd * 3, 0.15, 'highpass', 5000);
+  } },
+];
+const trackFor = l => TRACKS[Math.min(l, TRACKS.length) - 1];
 function schedule() {
   if (nextT < AC.currentTime - 0.2) nextT = AC.currentTime + 0.05;
-  while (nextT < AC.currentTime + 0.15) { playStep(step, nextT); step = (step + 1) % 64; nextT += STEP; }
+  while (nextT < AC.currentTime + 0.15) { trk.step(step, nextT, sd); step = (step + 1) % 64; nextT += sd; }
 }
 function startMusic() {
   const a = audio(); if (!a || timer) return;
@@ -213,18 +274,20 @@ function startMusic() {
     const d = nbuf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   }
+  trk = trackFor(level); sd = 60 / trk.bpm / 4;
   step = 0; nextT = a.currentTime + 0.05;
   timer = setInterval(schedule, 25);
 }
+function switchMusic() { if (timer) { stopMusic(); startMusic(); } }
 function stopMusic() { clearInterval(timer); timer = null; }
 
 // Levels 1-5; anything higher repeats level 5 and gets a little faster each time
 const LEVELS = [
-  { name: 'Sunny Meadow', tip: 'A gentle start: logs, turtles and slow traffic', river: 1.0, car: 0.85, croc: 0, amb: 0, sink: false, dark: 0 },
-  { name: 'Rush Hour', tip: 'Ambulance ahead: grab its hearts for extra lives', river: 1.05, car: 1.2, croc: 0, amb: 1, sink: false, dark: 0 },
-  { name: 'Croc Creek', tip: 'Crocodiles in the river. Lily pads sink in 2 seconds', river: 1.15, car: 1.2, croc: 0.28, amb: 1, sink: true, dark: 0 },
-  { name: 'Night Shift', tip: "It's dark out. Watch for headlights", river: 1.2, car: 1.4, croc: 0.35, amb: 1, sink: true, dark: 0.9 },
-  { name: 'Frog Fever', tip: 'Everything at once, and fast. Two ambulances!', river: 1.35, car: 1.65, croc: 0.4, amb: 2, sink: true, dark: 0.65 },
+  { name: 'Sunny Meadow', homes: 2, tip: 'A gentle start: logs, turtles and slow traffic', river: 1.0, car: 0.85, croc: 0, amb: 0, sink: false, dark: 0 },
+  { name: 'Rush Hour', homes: 3, tip: 'Ambulance ahead: grab its hearts for extra lives', river: 1.05, car: 1.2, croc: 0, amb: 1, sink: false, dark: 0 },
+  { name: 'Croc Creek', homes: 3, tip: 'Crocodiles in the river. Lily pads sink in 2 seconds', river: 1.15, car: 1.2, croc: 0.28, amb: 1, sink: true, dark: 0 },
+  { name: 'Night Shift', homes: 4, tip: "It's dark out. Watch for headlights", river: 1.2, car: 1.4, croc: 0.35, amb: 1, sink: true, dark: 0.9 },
+  { name: 'Frog Fever', homes: 5, tip: 'Everything at once, and fast. Two ambulances!', river: 1.35, car: 1.65, croc: 0.4, amb: 2, sink: true, dark: 0.65 },
 ];
 // Lanes: row, kind, length (tiles), spacing (tiles), speed (tiles/sec, sign = direction)
 const LANES = [
@@ -251,7 +314,7 @@ LANES.forEach(l => {
 
 let state = 'ready', frog, maxRow, score = 0, lives = 3, level = 1, bays = [], deadT = 0, best = 0, ambs = [];
 let pops = [], confetti = [], confettiT = 0, newBest = false, splat = null;
-let card = null, entryOpen = false, board = [], lastId = null, pending = null;
+let card = null, entryOpen = false, board = [], lastId = null, pending = null, dev = false, confirmL = 0;
 const MAXL = 5;
 try { best = +localStorage.getItem('frogger-best') || 0; } catch (e) {}
 let unlocked = 1;
@@ -271,8 +334,9 @@ function hud() {
 }
 function start(lv = 1) {
   if (entryOpen) return;
+  closeConfirm();
   score = 0; lives = 3; level = lv; bays = []; pops = []; confetti = []; confettiT = 0; newBest = false; splat = null; lastId = null;
-  setupLevel(); card = { t: 0, dur: 2.2 }; spawn(); state = 'playing'; hud(); renderLevels(); renderBoard(); updateLeaderboardVisibility(); startMusic();
+  setupLevel(); card = { t: 0, dur: 2.2 }; spawn(); state = 'playing'; hud(); renderLevels(); renderBoard(); updateLeaderboardVisibility(); stopMusic(); startMusic();
 }
 function saveBest() {
   if (score > best) { best = score; try { localStorage.setItem('frogger-best', best); } catch (e) {} }
@@ -285,12 +349,12 @@ function reachTop() {
   const b = BAYS.find(c => Math.abs(cx - (c * T + T / 2)) < T * 0.6);
   if (b === undefined || bays.includes(b)) return die();
   bays.push(b); score += 50; splash();
-  if (bays.length === BAYS.length) { level++; bays = []; score += 200; unlockLevel(level); setupLevel(); card = { t: 0, dur: 2.2 }; }
+  if (bays.length === BAYS.length) { level++; bays = []; score += 200; lives = Math.max(lives, 3); hud(); unlockLevel(level); setupLevel(); card = { t: 0, dur: 2.2 }; switchMusic(); }
   spawn();
 }
 
 function move(dx, dy) {
-  if (state !== 'playing' || splat || card) return;
+  if (state !== 'playing' || splat || card || confirmL) return;
   const ox = frog.x, orow = frog.row;
   frog.cd = 0;
   frog.x = Math.max(0, Math.min(W - T, frog.x + dx * T));
@@ -486,7 +550,7 @@ function banner(title, sub) {
 
 // Level thumbnails: one per completed level, shown at the side; tap one to start at that level
 function unlockLevel(l) {
-  if (l <= unlocked) return;
+  if (l <= unlocked || dev) return;
   unlocked = l;
   try { localStorage.setItem('frogger-level', unlocked); } catch (e) {}
   renderLevels();
@@ -512,22 +576,27 @@ function drawThumb(g, L) {
     g.fillStyle = 'rgba(255,235,150,.95)';
     for (const [hx, hr] of [[30, 8], [64, 9], [18, 10]]) g.fillRect(hx, hr * rh + rh * 0.35, 4, rh * 0.3);
   }
-  for (const c of BAYS) {
+  for (const c of bayCols(lc.homes)) {
     const cx = (c * T + T / 2) * S / W;
     g.fillStyle = '#fff'; g.fillRect(cx - 3.6, 0.4, 7.2, 7.2);
     g.fillStyle = '#7ee05a'; g.beginPath(); g.arc(cx, 4, 2.8, 0, 7); g.fill();
   }
   g.fillStyle = '#7ee05a'; g.beginPath(); g.arc(S / 2, 12.5 * rh, 3.5, 0, 7); g.fill();
 }
+function askRestart(L) {
+  confirmL = L; $('confirmh').textContent = 'Restart on level ' + L + '?'; $('confirm').hidden = false; $('cno').focus();
+}
+function closeConfirm() { confirmL = 0; $('confirm').hidden = true; }
+function toggleDev() { dev = !dev; renderLevels(); }
 function renderLevels() {
   const box = $('levels'); box.textContent = '';
-  if (unlocked < 2) return;
-  const lab = document.createElement('div'); lab.className = 'lvl-label'; lab.textContent = 'Start at'; box.appendChild(lab);
-  const ok = (state === 'ready' || state === 'over') && !entryOpen;
-  for (let L = 2; L <= unlocked; L++) {
+  const top = dev ? Math.max(unlocked, LEVELS.length) : unlocked;
+  if (top < 2) return;
+  const lab = document.createElement('div'); lab.className = 'lvl-label'; lab.textContent = dev ? 'Start at (dev mode)' : 'Start at'; box.appendChild(lab);
+  for (let L = 2; L <= top; L++) {
     const b = document.createElement('button');
     const lname = LEVELS[Math.min(L, LEVELS.length) - 1].name;
-    b.type = 'button'; b.className = 'lv'; b.disabled = !ok;
+    b.type = 'button'; b.className = 'lv'; b.disabled = entryOpen && !dev;
     b.title = 'Start at level ' + L + ': ' + lname; b.setAttribute('aria-label', 'Start at level ' + L + ', ' + lname);
     const th = document.createElement('span'); th.className = 'thumb';
     const c = document.createElement('canvas'); c.width = 96; c.height = 96; drawThumb(c.getContext('2d'), L);
@@ -535,7 +604,12 @@ function renderLevels() {
     th.append(c, bd);
     const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = lname;
     b.append(th, nm);
-    b.addEventListener('click', () => { if (state === 'ready' || state === 'over') { b.blur(); start(L); } });
+    b.addEventListener('click', () => {
+      b.blur();
+      if (entryOpen) { if (!dev) return; closeEntry(); }
+      if ((state === 'playing' || state === 'dead') && score > 0 && !dev) { askRestart(L); return; }
+      start(L);
+    });
     box.appendChild(b);
   }
 }
@@ -545,6 +619,7 @@ function laneMult(l) { const c = cfg(); return (l.kind === 'car' ? c.car : c.riv
 const fresh = () => ({ stand: 0, sink: false, fade: 0, gone: 0, on: false });
 function setupLevel() {
   const c = cfg();
+  BAYS = bayCols(c.homes);
   for (const l of LANES) {
     if (l.kind === 'log') { l.cr = l.xs.map((_, i) => c.croc > 0 && i === 1); l.cs = l.xs.map(fresh); }
     if (l.kind === 'pad') l.ps = l.xs.map(fresh);
@@ -594,6 +669,7 @@ function drawCard() {
   ctx.fillStyle = '#fff'; ctx.font = 'bold 44px system-ui, sans-serif'; ctx.fillText(c.name, W / 2, H / 2 + 8);
   ctx.fillStyle = '#cfe8c8'; ctx.font = '17px system-ui, sans-serif';
   ctx.fillText(level > LEVELS.length ? 'Even faster. How far can you go?' : c.tip, W / 2, H / 2 + 44);
+  ctx.fillStyle = '#7ee05a'; ctx.font = 'bold 16px system-ui, sans-serif'; ctx.fillText('Get ' + c.homes + ' frogs home', W / 2, H / 2 + 78);
   ctx.restore();
 }
 
@@ -785,6 +861,7 @@ function draw() {
 const KEYS = { ArrowUp: [0, -1], w: [0, -1], ArrowDown: [0, 1], s: [0, 1], ArrowLeft: [-1, 0], a: [-1, 0], ArrowRight: [1, 0], d: [1, 0] };
 addEventListener('keydown', e => {
   if (e.target.closest && e.target.closest('.levels, .entry')) return;
+  if (e.shiftKey && e.code === 'KeyD' && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); if (!e.repeat) toggleDev(); return; }
   const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
   if (k in KEYS || k === ' ') e.preventDefault();
   if (e.repeat) return;
@@ -827,6 +904,9 @@ $('entry').addEventListener('submit', e => {
   closeEntry(); renderBoard();
 });
 $('skip').addEventListener('click', closeEntry);
+$('cgo').addEventListener('click', () => { const L = confirmL; closeConfirm(); if (L) start(L); });
+$('cno').addEventListener('click', closeConfirm);
+$('confirm').addEventListener('keydown', e => { if (e.key === 'Escape') closeConfirm(); });
 $('nm').addEventListener('keydown', e => { if (e.key === 'Escape') closeEntry(); });
 $('nm').addEventListener('input', renderPendingBoard);
 
@@ -834,7 +914,8 @@ board = loadBoard(); setupLevel(); spawn(); hud(); renderLevels(); renderBoard()
 let last = 0;
 function frame(t) {
   const dt = Math.min(0.05, (t - last) / 1000 || 0); last = t;
-  if (card) { card.t += dt; if (card.t >= card.dur) card = null; }
+  if (confirmL) { /* paused while the restart prompt is open */ }
+  else if (card) { card.t += dt; if (card.t >= card.dur) card = null; }
   else if (splat) { splat.t += dt; if (splat.t >= splat.dur) splat = null; }
   else update(dt);
   fx(dt); draw(); requestAnimationFrame(frame);

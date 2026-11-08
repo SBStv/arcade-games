@@ -1,9 +1,9 @@
-# fly.toml app configuration file generated for arcade-games on 2026-11-07T08:54:17Z
+# fly.toml app configuration file generated for arcade-games-pn-acg on 2026-11-08T01:35:50Z
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'arcade-games'
+app = 'arcade-games-pn-acg'
 primary_region = 'ams'
 
 [build]

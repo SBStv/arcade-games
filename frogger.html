@@ -50,7 +50,7 @@ canvas{display:block;width:100%;height:auto;aspect-ratio:1;border-radius:10px;to
 .entry button{flex:1;font:inherit;font-size:15px;padding:10px;border:0;border-radius:10px;cursor:pointer;background:#2e7d32;color:#fff}
 .entry button.sec{background:#2b3a2e;color:#cfe3cd}
 .entry button:focus-visible{outline:3px solid #fff;outline-offset:2px}
-.lb{margin-top:18px;background:var(--btn);color:var(--btn-fg);border-radius:12px;padding:12px 14px}
+.lb{display:none;margin-top:18px;background:var(--btn);color:var(--btn-fg);border-radius:12px;padding:12px 14px}
 .lb h2{margin:0 0 4px;font-size:18px}
 .lb-top{margin:0 0 8px;font-size:13px;color:var(--muted)}
 .lbt{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
@@ -93,7 +93,7 @@ canvas{display:block;width:100%;height:auto;aspect-ratio:1;border-radius:10px;to
     <button class="down" data-x="0" data-y="1" aria-label="Hop down">▼</button>
     <button class="right" data-x="1" data-y="0" aria-label="Hop right">▶</button>
   </div>
-  <section class="lb" aria-labelledby="lbh">
+  <section class="lb" id="lb" aria-labelledby="lbh">
     <h2 id="lbh">Leaderboard</h2>
     <p class="lb-top" id="lbtop"></p>
     <table class="lbt">
@@ -245,6 +245,11 @@ try { best = +localStorage.getItem('frogger-best') || 0; } catch (e) {}
 let unlocked = 1;
 try { unlocked = Math.max(1, Math.min(99, +localStorage.getItem('frogger-level') || 1)); } catch (e) {}
 
+function updateLeaderboardVisibility() {
+  const lb = $('lb');
+  lb.style.display = (state === 'over' || entryOpen) ? '' : 'none';
+}
+
 function spawn() { frog = { x: 6 * T, row: 12, cd: 0 }; maxRow = 12; }
 function hud() {
   $('score').textContent = score;
@@ -255,7 +260,7 @@ function hud() {
 function start(lv = 1) {
   if (entryOpen) return;
   score = 0; lives = 3; level = lv; bays = []; pops = []; confetti = []; confettiT = 0; newBest = false; splat = null; lastId = null;
-  setupLevel(); card = { t: 0, dur: 2.2 }; spawn(); state = 'playing'; hud(); renderLevels(); renderBoard(); startMusic();
+  setupLevel(); card = { t: 0, dur: 2.2 }; spawn(); state = 'playing'; hud(); renderLevels(); renderBoard(); updateLeaderboardVisibility(); startMusic();
 }
 function saveBest() {
   if (score > best) { best = score; try { localStorage.setItem('frogger-best', best); } catch (e) {} }
@@ -362,7 +367,7 @@ function update(dt) {
   if (state === 'dead') {
     deadT -= dt;
     if (deadT <= 0) {
-      if (lives <= 0) { state = 'over'; stopMusic(); const nb = score > best; saveBest(); if (nb) celebrate(); offerScore(); renderLevels(); } else { spawn(); state = 'playing'; }
+      if (lives <= 0) { state = 'over'; stopMusic(); const nb = score > best; saveBest(); if (nb) celebrate(); offerScore(); renderLevels(); updateLeaderboardVisibility(); } else { spawn(); state = 'playing'; }
     }
     return;
   }
@@ -609,7 +614,7 @@ function offerScore() {
   pending = { s: score, l: level };
   $('entryh').textContent = newBest ? 'New high score!' : 'You made the leaderboard!';
   $('entryinfo').textContent = 'Rank #' + rank + ' \u00b7 Score ' + score + ' \u00b7 Level ' + level;
-  $('nm').value = savedName; $('entry').hidden = false; entryOpen = true;
+  $('nm').value = savedName; $('entry').hidden = false; entryOpen = true; updateLeaderboardVisibility();
   setTimeout(() => { $('nm').focus(); $('nm').select(); }, 50);
 }
 
@@ -781,7 +786,7 @@ document.addEventListener('visibilitychange', () => {
 // Leaderboard name entry
 let savedName = ''; try { savedName = localStorage.getItem('frogger-name') || ''; } catch (e) {}
 const cleanName = v => Array.from(v.replace(/[\u0000-\u001f\u007f]/g, '').trim()).slice(0, 10).join('');
-function closeEntry() { $('entry').hidden = true; entryOpen = false; pending = null; renderLevels(); }
+function closeEntry() { $('entry').hidden = true; entryOpen = false; pending = null; updateLeaderboardVisibility(); renderLevels(); }
 $('entry').addEventListener('submit', e => {
   e.preventDefault(); if (!pending) return;
   const n = cleanName($('nm').value) || 'Anonymous';
@@ -795,7 +800,7 @@ $('entry').addEventListener('submit', e => {
 $('skip').addEventListener('click', closeEntry);
 $('nm').addEventListener('keydown', e => { if (e.key === 'Escape') closeEntry(); });
 
-board = loadBoard(); setupLevel(); spawn(); hud(); renderLevels(); renderBoard();
+board = loadBoard(); setupLevel(); spawn(); hud(); renderLevels(); renderBoard(); updateLeaderboardVisibility();
 let last = 0;
 function frame(t) {
   const dt = Math.min(0.05, (t - last) / 1000 || 0); last = t;

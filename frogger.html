@@ -39,10 +39,16 @@ canvas{display:block;width:100%;height:auto;aspect-ratio:1;border-radius:10px;to
 .lv:focus-visible{outline:3px solid var(--fg);outline-offset:2px}
 @media (max-width:760px){.levels{position:static;transform:none;flex-direction:row;flex-wrap:wrap;justify-content:center;max-height:none;margin-top:10px;padding:0}}
 .board{position:relative}
-.entry{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(88%,360px);background:rgba(10,24,14,.95);color:#e2efe0;border-radius:14px;padding:18px 16px;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.5);z-index:2}
+.entry{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(88%,360px);max-height:90%;overflow-y:auto;overscroll-behavior:contain;background:rgba(10,24,14,.95);color:#e2efe0;border-radius:14px;padding:18px 16px;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.5);z-index:2}
 .entry[hidden]{display:none}
 .entry h2{margin:0 0 4px;font-size:20px;color:#7ee05a}
 .entry p{margin:0 0 12px;font-size:14px;color:#b8cfb8}
+.entry-preview{margin:10px 0 12px;text-align:left}
+.entry-preview h3{margin:0 0 4px;font-size:14px;color:#cfe8c8}
+.entry-preview .lbt{font-size:12px;color:#e2efe0}
+.entry-preview .lbt th{font-size:11px;color:#b8cfb8}
+.entry-preview .lbt td{padding:2px 4px;border-top:1px solid rgba(255,255,255,.16)}
+.entry-preview .lbt tr.me td{background:#2e7d32;color:#fff}
 .entry label{display:block;font-size:13px;margin-bottom:6px}
 .entry input{width:100%;font:inherit;font-size:18px;text-align:center;padding:10px;border-radius:10px;border:2px solid #3f8f3f;background:#0f1a12;color:#fff}
 .entry input:focus-visible{outline:3px solid #7ee05a;outline-offset:2px}
@@ -50,7 +56,7 @@ canvas{display:block;width:100%;height:auto;aspect-ratio:1;border-radius:10px;to
 .entry button{flex:1;font:inherit;font-size:15px;padding:10px;border:0;border-radius:10px;cursor:pointer;background:#2e7d32;color:#fff}
 .entry button.sec{background:#2b3a2e;color:#cfe3cd}
 .entry button:focus-visible{outline:3px solid #fff;outline-offset:2px}
-.lb{display:none;margin-top:18px;background:var(--btn);color:var(--btn-fg);border-radius:12px;padding:12px 14px}
+.lb{display:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(92%,380px);max-height:90%;overflow:auto;margin:0;background:var(--bg);color:var(--fg);border:2px solid var(--ban);border-radius:12px;padding:12px 14px;box-shadow:0 8px 30px rgba(0,0,0,.5);z-index:1;pointer-events:none}
 .lb h2{margin:0 0 4px;font-size:18px}
 .lb-top{margin:0 0 8px;font-size:13px;color:var(--muted)}
 .lbt{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
@@ -59,7 +65,6 @@ canvas{display:block;width:100%;height:auto;aspect-ratio:1;border-radius:10px;to
 .lbt .num{text-align:right}
 .lbt th:first-child,.lbt td:first-child{width:2em}
 .lbt tr.me td{background:var(--ban);color:var(--ban-fg);font-weight:700}
-@media (min-width:1100px){.lb{position:fixed;left:max(16px,env(safe-area-inset-left,0px));top:50%;transform:translateY(-50%);width:250px;margin:0;max-height:90vh;overflow:auto}}
 .up{grid-column:2;grid-row:1}.left{grid-column:1;grid-row:2}.down{grid-column:2;grid-row:2}.right{grid-column:3;grid-row:2}
 </style>
 </head>
@@ -79,10 +84,25 @@ canvas{display:block;width:100%;height:auto;aspect-ratio:1;border-radius:10px;to
     <form class="entry" id="entry" hidden autocomplete="off" aria-labelledby="entryh">
       <h2 id="entryh">You made the leaderboard!</h2>
       <p id="entryinfo"></p>
+      <section class="entry-preview" aria-labelledby="entry-board-heading">
+        <h3 id="entry-board-heading">Top 10 with your score</h3>
+        <table class="lbt">
+          <thead><tr><th>#</th><th>Name</th><th class="num">Score</th><th class="num">Level</th></tr></thead>
+          <tbody id="lbe"></tbody>
+        </table>
+      </section>
       <label for="nm">Your name or initials (up to 10 characters)</label>
       <input id="nm" type="text" maxlength="10" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done">
       <div class="row"><button type="submit">Save score</button><button type="button" class="sec" id="skip">Skip</button></div>
     </form>
+    <section class="lb" id="lb" aria-labelledby="lbh">
+      <h2 id="lbh">Leaderboard</h2>
+      <p class="lb-top" id="lbtop"></p>
+      <table class="lbt">
+        <thead><tr><th>#</th><th>Name</th><th class="num">Score</th><th class="num">Level</th></tr></thead>
+        <tbody id="lbb"></tbody>
+      </table>
+    </section>
   </div>
   <div class="levels" id="levels" role="group" aria-label="Start at a higher level"></div>
   <p class="help">Arrow keys or WASD to hop. Swipe or use the buttons on a touch screen.</p>
@@ -93,14 +113,6 @@ canvas{display:block;width:100%;height:auto;aspect-ratio:1;border-radius:10px;to
     <button class="down" data-x="0" data-y="1" aria-label="Hop down">▼</button>
     <button class="right" data-x="1" data-y="0" aria-label="Hop right">▶</button>
   </div>
-  <section class="lb" id="lb" aria-labelledby="lbh">
-    <h2 id="lbh">Leaderboard</h2>
-    <p class="lb-top" id="lbtop"></p>
-    <table class="lbt">
-      <thead><tr><th>#</th><th>Name</th><th class="num">Score</th><th class="num">Level</th></tr></thead>
-      <tbody id="lbb"></tbody>
-    </table>
-  </section>
 </div>
 <script>
 (() => {
@@ -247,7 +259,7 @@ try { unlocked = Math.max(1, Math.min(99, +localStorage.getItem('frogger-level')
 
 function updateLeaderboardVisibility() {
   const lb = $('lb');
-  lb.style.display = (state === 'over' || entryOpen) ? '' : 'none';
+  lb.style.display = (state === 'over' && !entryOpen) ? 'block' : 'none';
 }
 
 function spawn() { frog = { x: 6 * T, row: 12, cd: 0 }; maxRow = 12; }
@@ -595,18 +607,29 @@ function loadBoard() {
   } catch (e) {}
   return [];
 }
-function renderBoard() {
-  const tb = $('lbb'); tb.textContent = '';
+function renderBoardRows(tb, entries, highlighted) {
+  tb.textContent = '';
   for (let i = 0; i < 10; i++) {
-    const e = board[i], tr = document.createElement('tr');
-    if (e && e.id === lastId) tr.className = 'me';
+    const e = entries[i], tr = document.createElement('tr');
+    if (e && e === highlighted) tr.className = 'me';
     [i + 1, e ? e.n : '\u2013', e ? e.s : '', e ? e.l : ''].forEach((v, j) => {
       const td = document.createElement('td'); td.textContent = v; if (j > 1) td.className = 'num'; tr.appendChild(td);
     });
     tb.appendChild(tr);
   }
+}
+function renderBoard() {
+  renderBoardRows($('lbb'), board, board.find(e => e.id === lastId));
   const t = board[0];
   $('lbtop').textContent = t ? 'Top score: ' + t.s + ' by ' + t.n + ', reached level ' + t.l + '.' : 'No scores yet. Be the first!';
+}
+function renderPendingBoard() {
+  if (!pending) return;
+  const rank = board.filter(e => e.s >= pending.s).length;
+  const preview = { n: cleanName($('nm').value) || 'Your name', s: pending.s, l: pending.l };
+  const entries = board.slice();
+  entries.splice(rank, 0, preview);
+  renderBoardRows($('lbe'), entries.slice(0, 10), preview);
 }
 function offerScore() {
   const rank = board.filter(e => e.s >= score).length + 1;
@@ -620,7 +643,7 @@ function offerScore() {
   pending = { s: score, l: level };
   $('entryh').textContent = newBest ? 'New high score!' : 'You made the leaderboard!';
   $('entryinfo').textContent = 'Rank #' + rank + ' \u00b7 Score ' + score + ' \u00b7 Level ' + level;
-  $('nm').value = savedName; $('entry').hidden = false; entryOpen = true; updateLeaderboardVisibility();
+  $('nm').value = savedName; renderPendingBoard(); $('entry').hidden = false; entryOpen = true; updateLeaderboardVisibility();
   setTimeout(() => { $('nm').focus(); $('nm').select(); }, 50);
 }
 
@@ -805,6 +828,7 @@ $('entry').addEventListener('submit', e => {
 });
 $('skip').addEventListener('click', closeEntry);
 $('nm').addEventListener('keydown', e => { if (e.key === 'Escape') closeEntry(); });
+$('nm').addEventListener('input', renderPendingBoard);
 
 board = loadBoard(); setupLevel(); spawn(); hud(); renderLevels(); renderBoard(); updateLeaderboardVisibility();
 let last = 0;

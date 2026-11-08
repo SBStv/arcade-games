@@ -610,7 +610,13 @@ function renderBoard() {
 }
 function offerScore() {
   const rank = board.filter(e => e.s >= score).length + 1;
-  if (score <= 0 || rank > 10) return;
+  const eligible = score > 0 && rank <= 10;
+  if (!eligible) {
+    $('entry').hidden = true;
+    entryOpen = false;
+    updateLeaderboardVisibility();
+    return;
+  }
   pending = { s: score, l: level };
   $('entryh').textContent = newBest ? 'New high score!' : 'You made the leaderboard!';
   $('entryinfo').textContent = 'Rank #' + rank + ' \u00b7 Score ' + score + ' \u00b7 Level ' + level;

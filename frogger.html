@@ -39,15 +39,16 @@ canvas{display:block;width:100%;height:auto;aspect-ratio:1;border-radius:10px;to
 .lv:focus-visible{outline:3px solid var(--fg);outline-offset:2px}
 @media (max-width:760px){.levels{position:static;transform:none;flex-direction:row;flex-wrap:wrap;justify-content:center;max-height:none;margin-top:10px;padding:0}}
 .board{position:relative}
-.entry{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(88%,360px);max-height:90%;overflow-y:auto;overscroll-behavior:contain;background:rgba(10,24,14,.95);color:#e2efe0;border-radius:14px;padding:18px 16px;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.5);z-index:2}
+.entry{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(88%,360px);max-height:90%;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;background:rgba(10,24,14,.95);color:#e2efe0;border-radius:14px;padding:12px 14px;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.5);z-index:2}
+.entry::-webkit-scrollbar{display:none}
 .entry[hidden]{display:none}
 .entry h2{margin:0 0 4px;font-size:20px;color:#7ee05a}
 .entry p{margin:0 0 12px;font-size:14px;color:#b8cfb8}
-.entry-preview{margin:10px 0 12px;text-align:left}
+.entry-preview{margin:6px 0 8px;text-align:left}
 .entry-preview h3{margin:0 0 4px;font-size:14px;color:#cfe8c8}
 .entry-preview .lbt{font-size:12px;color:#e2efe0}
 .entry-preview .lbt th{font-size:11px;color:#b8cfb8}
-.entry-preview .lbt td{padding:2px 4px;border-top:1px solid rgba(255,255,255,.16)}
+.entry-preview .lbt td{padding:1px 4px;border-top:1px solid rgba(255,255,255,.16)}
 .entry-preview .lbt tr.me td{background:#2e7d32;color:#fff}
 .entry label{display:block;font-size:13px;margin-bottom:6px}
 .entry input{width:100%;font:inherit;font-size:18px;text-align:center;padding:10px;border-radius:10px;border:2px solid #3f8f3f;background:#0f1a12;color:#fff}
@@ -56,15 +57,18 @@ canvas{display:block;width:100%;height:auto;aspect-ratio:1;border-radius:10px;to
 .entry button{flex:1;font:inherit;font-size:15px;padding:10px;border:0;border-radius:10px;cursor:pointer;background:#2e7d32;color:#fff}
 .entry button.sec{background:#2b3a2e;color:#cfe3cd}
 .entry button:focus-visible{outline:3px solid #fff;outline-offset:2px}
-.lb{display:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(92%,380px);max-height:90%;overflow:auto;margin:0;background:var(--bg);color:var(--fg);border:2px solid var(--ban);border-radius:12px;padding:12px 14px;box-shadow:0 8px 30px rgba(0,0,0,.5);z-index:1;pointer-events:none}
-.lb h2{margin:0 0 4px;font-size:18px}
-.lb-top{margin:0 0 8px;font-size:13px;color:var(--muted)}
+.scoreboard{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(92%,380px);background:rgba(10,24,14,.94);color:#e2efe0;border:2px solid #3f8f3f;border-radius:12px;padding:12px 14px;box-shadow:0 8px 30px rgba(0,0,0,.5);z-index:1;pointer-events:none}
+.scoreboard[hidden]{display:none}
+.scoreboard h2{margin:0 0 6px;font-size:18px;color:#7ee05a}
+.scoreboard .lbt{font-size:13px}
+.scoreboard .lbt th{color:#b8cfb8}
+.scoreboard .lbt td{padding:2px 4px;border-top:1px solid rgba(255,255,255,.16)}
+.scoreboard .lbt tr.me td{background:#2e7d32;color:#fff;font-weight:700}
 .lbt{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
 .lbt th{text-align:left;font-weight:600;font-size:12px;color:var(--muted);padding:2px 4px}
 .lbt td{padding:3px 4px;border-top:1px solid rgba(128,128,128,.25);overflow-wrap:anywhere}
 .lbt .num{text-align:right}
 .lbt th:first-child,.lbt td:first-child{width:2em}
-.lbt tr.me td{background:var(--ban);color:var(--ban-fg);font-weight:700}
 .up{grid-column:2;grid-row:1}.left{grid-column:1;grid-row:2}.down{grid-column:2;grid-row:2}.right{grid-column:3;grid-row:2}
 </style>
 </head>
@@ -100,9 +104,8 @@ canvas{display:block;width:100%;height:auto;aspect-ratio:1;border-radius:10px;to
       <input id="nm" type="text" maxlength="10" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done">
       <div class="row"><button type="submit">Save score</button><button type="button" class="sec" id="skip">Skip</button></div>
     </form>
-    <section class="lb" id="lb" aria-labelledby="lbh">
-      <h2 id="lbh">Leaderboard</h2>
-      <p class="lb-top" id="lbtop"></p>
+    <section class="scoreboard" id="scoreboard" hidden aria-labelledby="scoreboardh">
+      <h2 id="scoreboardh">Score saved! Top 10</h2>
       <table class="lbt">
         <thead><tr><th>#</th><th>Name</th><th class="num">Score</th><th class="num">Level</th></tr></thead>
         <tbody id="lbb"></tbody>
@@ -314,16 +317,11 @@ LANES.forEach(l => {
 
 let state = 'ready', frog, maxRow, score = 0, lives = 3, level = 1, bays = [], deadT = 0, best = 0, ambs = [];
 let pops = [], confetti = [], confettiT = 0, newBest = false, splat = null;
-let card = null, entryOpen = false, board = [], lastId = null, pending = null, dev = false, confirmL = 0;
+let card = null, entryOpen = false, board = [], pending = null, dev = false, confirmL = 0, savedResetTimer = null;
 const MAXL = 5;
 try { best = +localStorage.getItem('frogger-best') || 0; } catch (e) {}
 let unlocked = 1;
 try { unlocked = Math.max(1, Math.min(99, +localStorage.getItem('frogger-level') || 1)); } catch (e) {}
-
-function updateLeaderboardVisibility() {
-  const lb = $('lb');
-  lb.style.display = (state === 'over' && !entryOpen) ? 'block' : 'none';
-}
 
 function spawn() { frog = { x: 6 * T, row: 12, cd: 0 }; maxRow = 12; }
 function hud() {
@@ -333,10 +331,16 @@ function hud() {
   $('best').textContent = Math.max(best, score);
 }
 function start(lv = 1) {
-  if (entryOpen) return;
+  if (entryOpen || savedResetTimer) return;
   closeConfirm();
-  score = 0; lives = 3; level = lv; bays = []; pops = []; confetti = []; confettiT = 0; newBest = false; splat = null; lastId = null;
-  setupLevel(); card = { t: 0, dur: 2.2 }; spawn(); state = 'playing'; hud(); renderLevels(); renderBoard(); updateLeaderboardVisibility(); stopMusic(); startMusic();
+  score = 0; lives = 3; level = lv; bays = []; pops = []; confetti = []; confettiT = 0; newBest = false; splat = null;
+  setupLevel(); card = { t: 0, dur: 2.2 }; spawn(); state = 'playing'; hud(); renderLevels(); stopMusic(); startMusic();
+}
+function resetToReady() {
+  savedResetTimer = null;
+  $('scoreboard').hidden = true;
+  score = 0; lives = 3; level = 1; bays = []; pops = []; confetti = []; confettiT = 0; newBest = false; splat = null; card = null; deadT = 0;
+  setupLevel(); spawn(); state = 'ready'; hud(); renderLevels(); stopMusic();
 }
 function saveBest() {
   if (score > best) { best = score; try { localStorage.setItem('frogger-best', best); } catch (e) {} }
@@ -443,7 +447,7 @@ function update(dt) {
   if (state === 'dead') {
     deadT -= dt;
     if (deadT <= 0) {
-      if (lives <= 0) { state = 'over'; stopMusic(); const nb = score > best; saveBest(); if (nb) celebrate(); offerScore(); renderLevels(); updateLeaderboardVisibility(); } else { spawn(); state = 'playing'; }
+      if (lives <= 0) { state = 'over'; stopMusic(); const nb = score > best; saveBest(); if (nb) celebrate(); offerScore(); renderLevels(); } else { spawn(); state = 'playing'; }
     }
     return;
   }
@@ -596,7 +600,7 @@ function renderLevels() {
   for (let L = 2; L <= top; L++) {
     const b = document.createElement('button');
     const lname = LEVELS[Math.min(L, LEVELS.length) - 1].name;
-    b.type = 'button'; b.className = 'lv'; b.disabled = entryOpen && !dev;
+    b.type = 'button'; b.className = 'lv'; b.disabled = (entryOpen && !dev) || !!savedResetTimer;
     b.title = 'Start at level ' + L + ': ' + lname; b.setAttribute('aria-label', 'Start at level ' + L + ', ' + lname);
     const th = document.createElement('span'); th.className = 'thumb';
     const c = document.createElement('canvas'); c.width = 96; c.height = 96; drawThumb(c.getContext('2d'), L);
@@ -694,11 +698,6 @@ function renderBoardRows(tb, entries, highlighted) {
     tb.appendChild(tr);
   }
 }
-function renderBoard() {
-  renderBoardRows($('lbb'), board, board.find(e => e.id === lastId));
-  const t = board[0];
-  $('lbtop').textContent = t ? 'Top score: ' + t.s + ' by ' + t.n + ', reached level ' + t.l + '.' : 'No scores yet. Be the first!';
-}
 function renderPendingBoard() {
   if (!pending) return;
   const rank = board.filter(e => e.s >= pending.s).length;
@@ -713,13 +712,12 @@ function offerScore() {
   if (!eligible) {
     $('entry').hidden = true;
     entryOpen = false;
-    updateLeaderboardVisibility();
     return;
   }
   pending = { s: score, l: level };
   $('entryh').textContent = newBest ? 'New high score!' : 'You made the leaderboard!';
   $('entryinfo').textContent = 'Rank #' + rank + ' \u00b7 Score ' + score + ' \u00b7 Level ' + level;
-  $('nm').value = savedName; renderPendingBoard(); $('entry').hidden = false; entryOpen = true; updateLeaderboardVisibility();
+  $('nm').value = savedName; renderPendingBoard(); $('entry').hidden = false; entryOpen = true;
   setTimeout(() => { $('nm').focus(); $('nm').select(); }, 50);
 }
 
@@ -852,7 +850,7 @@ function draw() {
     ctx.restore();
   }
   if (state === 'ready') banner('Finn the Frogger', 'Press Space or tap to start');
-  if (state === 'over') banner(newBest ? 'NEW HIGH SCORE!' : 'GAME OVER', 'Score ' + score + '. Press Space or tap to play again');
+  if (state === 'over') banner(savedResetTimer ? 'SCORE SAVED!' : newBest ? 'NEW HIGH SCORE!' : 'GAME OVER', savedResetTimer ? 'Starting a new game...' : 'Score ' + score + '. Press Space or tap to play again');
   drawSplat();
   drawCard();
   drawConfetti();
@@ -892,16 +890,18 @@ document.addEventListener('visibilitychange', () => {
 // Leaderboard name entry
 let savedName = ''; try { savedName = localStorage.getItem('frogger-name') || ''; } catch (e) {}
 const cleanName = v => Array.from(v.replace(/[\u0000-\u001f\u007f]/g, '').trim()).slice(0, 10).join('');
-function closeEntry() { $('entry').hidden = true; entryOpen = false; pending = null; updateLeaderboardVisibility(); renderLevels(); }
+function closeEntry() { $('entry').hidden = true; entryOpen = false; pending = null; renderLevels(); }
 $('entry').addEventListener('submit', e => {
   e.preventDefault(); if (!pending) return;
   const n = cleanName($('nm').value) || 'Anonymous';
   savedName = n; try { localStorage.setItem('frogger-name', n); } catch (e2) {}
   const rec = { n, s: pending.s, l: pending.l, id: Date.now() };
   board.push(rec); board.sort((a, b) => b.s - a.s || a.id - b.id); board = board.slice(0, 10);
-  lastId = rec.id;
   try { localStorage.setItem('frogger-board', JSON.stringify(board)); } catch (e2) {}
-  closeEntry(); renderBoard();
+  renderBoardRows($('lbb'), board, rec);
+  $('scoreboard').hidden = false;
+  savedResetTimer = setTimeout(resetToReady, 4000);
+  closeEntry();
 });
 $('skip').addEventListener('click', closeEntry);
 $('cgo').addEventListener('click', () => { const L = confirmL; closeConfirm(); if (L) start(L); });
@@ -910,7 +910,7 @@ $('confirm').addEventListener('keydown', e => { if (e.key === 'Escape') closeCon
 $('nm').addEventListener('keydown', e => { if (e.key === 'Escape') closeEntry(); });
 $('nm').addEventListener('input', renderPendingBoard);
 
-board = loadBoard(); setupLevel(); spawn(); hud(); renderLevels(); renderBoard(); updateLeaderboardVisibility();
+board = loadBoard(); setupLevel(); spawn(); hud(); renderLevels();
 let last = 0;
 function frame(t) {
   const dt = Math.min(0.05, (t - last) / 1000 || 0); last = t;

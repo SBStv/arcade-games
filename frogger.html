@@ -49,7 +49,7 @@ canvas{display:block;width:100%;height:auto;aspect-ratio:1;border-radius:10px;to
 .lv .nm{font-size:10px;line-height:1.15;color:var(--muted);text-align:center}
 .lv:disabled{opacity:.45;cursor:default}
 .lv:focus-visible{outline:3px solid var(--fg);outline-offset:2px}
-@media (max-width:760px){.game-layout{display:flex;flex-direction:column;align-items:stretch;gap:10px}.game-main{width:min(100%,480px);align-self:center;order:2}.game-nav{position:static;flex-direction:row;align-items:center;justify-content:flex-start;gap:8px;width:100%;margin:0;order:1}.game-nav h2{font-size:14px}.game-nav a::after{left:calc(100% + 8px);top:50%}.levels{position:static;transform:none;flex-direction:row;flex-wrap:wrap;justify-content:center;max-height:none;margin-top:10px;padding:0}}
+@media (max-width:760px){.game-layout{display:flex;flex-direction:column;align-items:stretch;gap:10px}.game-main{width:min(100%,480px);align-self:center;order:2}.game-nav{position:static;flex-direction:row;align-items:center;justify-content:flex-start;gap:8px;width:100%;margin:0;order:1}.game-nav h2{font-size:14px}.game-nav a::after{left:calc(100% + 8px);top:50%}.levels{position:static;transform:none;flex-direction:row;flex-wrap:wrap;justify-content:center;max-height:none;margin-top:10px;padding:0}.entry{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(92vw,420px);max-height:calc(100vh - 24px);max-height:calc(100dvh - 24px);z-index:20}}
 .board{position:relative}
 .entry{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(88%,360px);max-height:90%;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;background:rgba(10,24,14,.95);color:#e2efe0;border-radius:14px;padding:12px 14px;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.5);z-index:2}
 .entry::-webkit-scrollbar{display:none}
@@ -630,6 +630,8 @@ function closeConfirm() { confirmL = 0; $('confirm').hidden = true; }
 function toggleDev() { dev = !dev; renderLevels(); }
 function renderLevels() {
   const box = $('levels'); box.textContent = '';
+  box.hidden = entryOpen;
+  if (entryOpen) return;
   const top = dev ? Math.max(unlocked, LEVELS.length) : unlocked;
   if (top < 2) return;
   const lab = document.createElement('div'); lab.className = 'lvl-label'; lab.textContent = dev ? 'Start at (dev mode)' : 'Start at'; box.appendChild(lab);
@@ -753,7 +755,7 @@ function offerScore() {
   pending = { s: score, l: level };
   $('entryh').textContent = newBest ? 'New high score!' : 'You made the leaderboard!';
   $('entryinfo').textContent = 'Rank #' + rank + ' \u00b7 Score ' + score + ' \u00b7 Level ' + level;
-  $('nm').value = savedName; renderPendingBoard(); $('entry').hidden = false; entryOpen = true;
+  $('nm').value = savedName; renderPendingBoard(); $('entry').hidden = false; entryOpen = true; $('levels').hidden = true;
   setTimeout(() => { $('nm').focus(); $('nm').select(); }, 50);
 }
 

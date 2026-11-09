@@ -130,19 +130,36 @@ if(r<best){best=r;score+=10;snd(300,700,.12)}else snd(250,400,.08);
 if(r===0){score+=100*level;level++;best=12;banner=1.4;snd(400,1200,.35,"triangle");reset()}}
 function hit(){lives--;flash=.35;snd(300,60,.4,"sawtooth",.15);
 if(lives<=0){st="over";hi=Math.max(hi,score);try{localStorage.setItem("tadpole-best",hi)}catch(e){}stopMusic();offerScore()}else reset()}
-// Crows caw ("caw, caw") when the tadpole gets close; each crow waits a few seconds before cawing again
+// Crows caw when the tadpole gets close; each call varies in length, pitch and rhythm.
 function caw(v){try{A=A||new(window.AudioContext||window.webkitAudioContext)();if(A.state==="suspended")A.resume();
-const t0=A.currentTime,pf=.9+Math.random()*.2;
-for(let i=0;i<2;i++){const t=t0+i*.28,len=i?.17:.21,f=520*pf*(i?.92:1);
+const t0=A.currentTime,count=2+Math.random()*3|0,volume=Math.min(.32,v*2.1);let offset=0;
+for(let i=0;i<count;i++){const t=t0+offset,len=.24+Math.random()*.22,f=340+Math.random()*260,fall=.56+Math.random()*.25;
 const k=A.createGain(),b=A.createBiquadFilter();
-b.type="bandpass";b.frequency.setValueAtTime(1100,t);b.frequency.exponentialRampToValueAtTime(700,t+len);b.Q.value=2.5;
-k.gain.setValueAtTime(.0001,t);k.gain.exponentialRampToValueAtTime(v,t+.03);k.gain.exponentialRampToValueAtTime(.001,t+len);
+b.type="bandpass";b.frequency.setValueAtTime(1250+Math.random()*500,t);b.frequency.exponentialRampToValueAtTime(550+Math.random()*350,t+len);b.Q.value=1.6+Math.random()*1.8;
+k.gain.setValueAtTime(.0001,t);k.gain.exponentialRampToValueAtTime(volume,t+.025);k.gain.exponentialRampToValueAtTime(volume*.52,t+len*.34);k.gain.exponentialRampToValueAtTime(volume*.82,t+len*.52);k.gain.exponentialRampToValueAtTime(.001,t+len);
 b.connect(k);k.connect(A.destination);
-for(const d of[1,1.03]){const o=A.createOscillator();o.type="sawtooth";o.frequency.setValueAtTime(f*d,t);o.frequency.exponentialRampToValueAtTime(f*d*.64,t+len);o.connect(b);o.start(t);o.stop(t+len+.02)}}}catch(e){}}
+for(const detune of[-.045,.04]){const o=A.createOscillator();o.type="sawtooth";o.frequency.setValueAtTime(f*(1+detune),t);o.frequency.exponentialRampToValueAtTime(f*fall*(1+detune),t+len);o.connect(b);o.start(t);o.stop(t+len+.02)}
+const n=A.createBuffer(1,Math.ceil(A.sampleRate*len),A.sampleRate),data=n.getChannelData(0);for(let j=0;j<data.length;j++)data[j]=Math.random()*2-1;
+const src=A.createBufferSource(),ng=A.createGain();src.buffer=n;ng.gain.setValueAtTime(volume*.18,t);ng.gain.exponentialRampToValueAtTime(.001,t+len);src.connect(b);b.connect(ng);ng.connect(A.destination);src.start(t);
+offset+=len*.68+.07+Math.random()*.2}}catch(e){}}
+function gullCry(v){try{A=A||new(window.AudioContext||window.webkitAudioContext)();if(A.state==="suspended")A.resume();
+const t=A.currentTime,len=.92+Math.random()*.12,f=620+Math.random()*170,volume=Math.min(.3,v*2);
+const k=A.createGain(),b=A.createBiquadFilter();b.type="bandpass";b.frequency.setValueAtTime(900,t);b.frequency.exponentialRampToValueAtTime(1750,t+.28);b.frequency.exponentialRampToValueAtTime(1250,t+.58);b.frequency.exponentialRampToValueAtTime(650,t+len);b.Q.value=2.2;
+k.gain.setValueAtTime(.0001,t);k.gain.exponentialRampToValueAtTime(volume,t+.045);k.gain.setValueAtTime(volume*.58,t+.2);k.gain.exponentialRampToValueAtTime(volume*.9,t+.34);k.gain.exponentialRampToValueAtTime(volume*.48,t+.53);k.gain.exponentialRampToValueAtTime(.001,t+len);
+b.connect(k);k.connect(A.destination);
+k.gain.cancelScheduledValues(t);k.gain.setValueAtTime(.0001,t);k.gain.linearRampToValueAtTime(volume*.32,t+.12);k.gain.linearRampToValueAtTime(volume,t+.3);k.gain.linearRampToValueAtTime(volume*.74,t+.59);k.gain.linearRampToValueAtTime(volume*.25,t+.75);k.gain.exponentialRampToValueAtTime(.001,t+len);
+for(const detune of[-.025,.025]){const o=A.createOscillator();o.type="sawtooth";o.frequency.setValueAtTime(f*(1+detune),t);o.frequency.exponentialRampToValueAtTime(f*1.38*(1+detune),t+.16);o.frequency.exponentialRampToValueAtTime(f*.72*(1+detune),t+.39);o.frequency.exponentialRampToValueAtTime(f*1.12*(1+detune),t+.53);o.frequency.exponentialRampToValueAtTime(f*.62*(1+detune),t+len);o.connect(b);o.start(t);o.stop(t+len+.02)}
+const hum=A.createOscillator(),hg=A.createGain(),hf=A.createBiquadFilter();hum.type="triangle";hum.frequency.setValueAtTime(245,t);hum.frequency.exponentialRampToValueAtTime(205,t+len);hf.type="bandpass";hf.frequency.value=420;hf.Q.value=1.8;hg.gain.setValueAtTime(.0001,t);hg.gain.linearRampToValueAtTime(volume*.35,t+.09);hg.gain.setValueAtTime(volume*.2,t+.15);hg.gain.linearRampToValueAtTime(volume*.42,t+.68);hg.gain.exponentialRampToValueAtTime(.001,t+len);hum.connect(hf);hf.connect(hg);hg.connect(A.destination);hum.start(t);hum.stop(t+len+.02);
+const n=A.createBuffer(1,Math.ceil(A.sampleRate*len),A.sampleRate),data=n.getChannelData(0);for(let i=0;i<data.length;i++)data[i]=Math.random()*2-1;
+const src=A.createBufferSource(),ng=A.createGain(),nb=A.createBiquadFilter();src.buffer=n;nb.type="bandpass";nb.frequency.value=2200;nb.Q.value=.7;ng.gain.setValueAtTime(volume*.12,t);ng.gain.exponentialRampToValueAtTime(.001,t+len);src.connect(nb);nb.connect(ng);ng.connect(A.destination);src.start(t)}catch(e){}}
 function nearCrows(){for(const e of E){if(e.t!=="crow")continue;
-const hw=e.s*.75,dx=e.x+hw/2-(p.x+T/2),dy=e.r*T-p.y,dist=Math.hypot(dx,dy),near=dist<110;
-if(near&&!e.near&&tm>(e.cawT||0)){caw(.05+.1*(1-dist/110));e.cawT=tm+2.5}
-e.near=near}}
+const hw=e.s*.75,dx=e.x+hw/2-(p.x+T/2),dy=e.r*T-p.y,dist=Math.hypot(dx,dy);
+const near=dist<110;
+if(near){if(!e.near)e.callAt=tm+Math.random()*1.2;
+if(tm>=(e.callAt||0)){caw(.05+.1*(1-dist/110));e.callAt=tm+2.5+Math.random()*4}}
+else e.callAt=0;
+e.near=near;
+}}
 function update(dt){tm+=dt;flash=Math.max(0,flash-dt);banner=Math.max(0,banner-dt);
 if(st!=="play")return;
 const k=Math.min(1,dt*18);p.x+=(p.c*T-p.x)*k;p.y+=(p.r*T-p.y)*k;

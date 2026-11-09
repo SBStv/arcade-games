@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tadpole Hop</title>
+<style>
+:root{--bg:#e6f5ee;--fg:#12332a;--btn:#2e9d6a;--btnfg:#fff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1f1a;--fg:#d8f3e6;--btn:#238a5a;--btnfg:#fff;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e1f1a;--fg:#d8f3e6;--btn:#238a5a;--btnfg:#fff;color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;flex-direction:column;align-items:center;padding:8px;gap:8px}
+h1{margin:4px 0 0;font-size:1.5rem}
+#hud{display:flex;justify-content:space-between;width:min(100%,480px);font-weight:600;font-size:.95rem}
+canvas{width:min(100%,480px);height:auto;border-radius:12px;touch-action:none;display:block}
+#pad{display:grid;grid-template-columns:repeat(3,64px);grid-template-rows:repeat(2,52px);gap:6px}
+#pad button{font-size:1.4rem;border:0;border-radius:12px;background:var(--btn);color:var(--btnfg);touch-action:manipulation}
+#pad button:active{filter:brightness(1.2)}
+p{margin:0;font-size:.85rem;opacity:.8;text-align:center}
+#mu{font:inherit;font-size:.85rem;border:0;border-radius:10px;padding:6px 12px;background:var(--btn);color:var(--btnfg);touch-action:manipulation}
+</style></head><body>
+<h1>🐸 Tadpole Hop</h1>
+<div id="hud"><span id="lv"></span><span id="hp"></span><span id="sc"></span><span id="sg"></span></div>
+<canvas id="c" width="480" height="520"></canvas>
+<div id="pad"><span></span><button data-d="0,-1">▲</button><span></span><button data-d="-1,0">◀</button><button data-d="0,1">▼</button><button data-d="1,0">▶</button></div>
+<p>Arrow keys, WASD, swipe or buttons. Reach the grass to grow into a frog!</p>
+<button id="mu" type="button" aria-label="Turn music on or off">🔊 Music on</button>
+<script>
+const C=document.getElementById("c"),g=C.getContext("2d"),T=40,COLS=12,ROWS=13,W=480;
+const $=id=>document.getElementById(id);
+const L=[[11,"fish",1,55,3,34],[10,"fish",-1,85,3,42],[9,"fish",1,115,2,50],
+[7,"frog",-1,70,3,32],[6,"frog",1,95,3,32],
+[4,"crow",1,125,2,34],[3,"gull",-1,150,2,34],[2,"crane",-1,165,2,34]];
+const EM={fish:"🐟",frog:"🐸",bird:"🐦"};
+const NAMES=["Tadpole","Back legs","Front legs","Froglet"];
+let A,E=[],p,st="title",lives=3,score=0,hi=0,level=1,best=12,tm=0,flash=0,banner=0,last=0,tx=0,ty=0;
+function snd(f1,f2,d,type="sine",v=.12){try{A=A||new(window.AudioContext||window.webkitAudioContext)();const o=A.createOscillator(),k=A.createGain(),t=A.currentTime;o.type=type;o.frequency.setValueAtTime(f1,t);o.frequency.exponentialRampToValueAtTime(f2,t+d);k.gain.setValueAtTime(v,t);k.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(k);k.connect(A.destination);o.start(t);o.stop(t+d)}catch(e){}}
+function reset(){p={c:5,r:12,x:5*T,y:12*T}}
+function spawn(){E=[];for(const[r,t,d,sp,n,s]of L){const gap=W+120;for(let i=0;i<n;i++)E.push({r,t,d,sp,s,x:(i*gap/n+Math.random()*30)%gap-60,ph:Math.random()*6})}}
+function newGame(){lives=3;score=0;level=1;best=12;banner=1.2;reset();spawn();st="play";startMusic()}
+function stage(){const r=Math.round(p.y/T);return r>=9?0:r>=6?1:r>=2?2:3}
+function mv(dc,dr){if(st!=="play"){newGame();return}
+const c=p.c+dc,r=p.r+dr;if(c<0||c>=COLS||r<0||r>=ROWS)return;
+if(Math.abs(p.x-p.c*T)>6||Math.abs(p.y-p.r*T)>6)return;
+p.c=c;p.r=r;
+if(r<best){best=r;score+=10;snd(300,700,.12)}else snd(250,400,.08);
+if(r===0){score+=100*level;level++;best=12;banner=1.4;snd(400,1200,.35,"triangle");reset()}}
+function hit(){lives--;flash=.35;snd(300,60,.4,"sawtooth",.15);
+if(lives<=0){st="over";hi=Math.max(hi,score);stopMusic()}else reset()}
+// Crows caw ("caw, caw") when the tadpole gets close; each crow waits a few seconds before cawing again
+function caw(v){try{A=A||new(window.AudioContext||window.webkitAudioContext)();if(A.state==="suspended")A.resume();
+const t0=A.currentTime,pf=.9+Math.random()*.2;
+for(let i=0;i<2;i++){const t=t0+i*.28,len=i?.17:.21,f=520*pf*(i?.92:1);
+const k=A.createGain(),b=A.createBiquadFilter();
+b.type="bandpass";b.frequency.setValueAtTime(1100,t);b.frequency.exponentialRampToValueAtTime(700,t+len);b.Q.value=2.5;
+k.gain.setValueAtTime(.0001,t);k.gain.exponentialRampToValueAtTime(v,t+.03);k.gain.exponentialRampToValueAtTime(.001,t+len);
+b.connect(k);k.connect(A.destination);
+for(const d of[1,1.03]){const o=A.createOscillator();o.type="sawtooth";o.frequency.setValueAtTime(f*d,t);o.frequency.exponentialRampToValueAtTime(f*d*.64,t+len);o.connect(b);o.start(t);o.stop(t+len+.02)}}}catch(e){}}
+function nearCrows(){for(const e of E){if(e.t!=="crow")continue;
+const hw=e.s*.75,dx=e.x+hw/2-(p.x+T/2),dy=e.r*T-p.y,dist=Math.hypot(dx,dy),near=dist<110;
+if(near&&!e.near&&tm>(e.cawT||0)){caw(.05+.1*(1-dist/110));e.cawT=tm+2.5}
+e.near=near}}
+function update(dt){tm+=dt;flash=Math.max(0,flash-dt);banner=Math.max(0,banner-dt);
+if(st!=="play")return;
+const k=Math.min(1,dt*18);p.x+=(p.c*T-p.x)*k;p.y+=(p.r*T-p.y)*k;
+const sc=1+.15*(level-1),row=Math.round(p.y/T);
+nearCrows();
+for(const e of E){let v=e.sp*e.d*sc;
+if(e.t==="frog")v*=.2+1.6*Math.max(0,Math.sin(tm*3+e.ph));
+e.x+=v*dt;
+if(e.d>0&&e.x>W+60)e.x=-60-e.s;if(e.d<0&&e.x<-60-e.s)e.x=W+60;
+if(e.r===row){const hw=e.s*.75;if(p.x+10<e.x+hw&&p.x+T-10>e.x){hit();break}}}}
+function bg(){
+for(let r=0;r<ROWS;r++){let c;
+if(r===0)c="#5cb85c";else if(r<=5)c="#b79a6b";
+else{const t=(r-6)/6;c=`rgb(${60-t*35|0},${150-t*70|0},${200-t*60|0})`}
+g.fillStyle=c;g.fillRect(0,r*T,W,T);
+if(r===8){g.fillStyle="rgba(40,140,70,.45)";for(let i=0;i<W;i+=24)g.fillRect(i+4,r*T+6,5,T-6)}
+if(r>=6&&r!==8){g.strokeStyle="rgba(255,255,255,.18)";g.beginPath();for(let i=0;i<W;i+=40){g.moveTo(i,r*T+T/2);g.quadraticCurveTo(i+10,r*T+T/2-5,i+20,r*T+T/2)}g.stroke()}}
+g.fillStyle="#fff";g.font="bold 14px system-ui,sans-serif";g.textAlign="center";g.fillText("LAND",W/2,T/2+5)}
+function drawGull(e){const hw=e.s*.75,cx=e.x+hw/2,cy=e.r*T+T/2,k=e.s/34,f=Math.sin(tm*9+e.ph);
+g.save();g.translate(cx,cy+f*1.5);g.scale(e.d<0?-k:k,k);g.lineCap="round";
+g.fillStyle="#fff";g.beginPath();g.moveTo(-9,-1);g.lineTo(-15,-4);g.lineTo(-15,3);g.closePath();g.fill();
+g.strokeStyle="#f4a300";g.lineWidth=1.5;g.beginPath();g.moveTo(-2,6);g.lineTo(-3,11);g.moveTo(3,6);g.lineTo(4,11);g.stroke();
+g.fillStyle="#fff";g.beginPath();g.ellipse(0,1,11,6,0,0,7);g.fill();
+g.save();g.translate(-1,-2);g.rotate(.5+.7*f);g.fillStyle="#cfd8dc";g.beginPath();g.ellipse(-9,0,10,3.4,0,0,7);g.fill();
+g.fillStyle="#37474f";g.beginPath();g.ellipse(-17,0,3.2,2.4,0,0,7);g.fill();g.restore();
+g.fillStyle="#fff";g.beginPath();g.arc(8,-4,4.6,0,7);g.fill();
+g.fillStyle="#f4a300";g.beginPath();g.moveTo(11.5,-5.2);g.lineTo(17.5,-3.4);g.lineTo(11.5,-2.2);g.closePath();g.fill();
+g.fillStyle="#c62828";g.fillRect(14.3,-3.7,1.6,1.1);
+g.fillStyle="#000";g.beginPath();g.arc(9,-5.4,1,0,7);g.fill();g.restore()}
+function drawCrane(e){const hw=e.s*.75,cx=e.x+hw/2,cy=e.r*T+T/2,k=e.s/34,ph=tm*10+e.ph,hb=Math.sin(ph*2)*2.6,wf=Math.sin(tm*6+e.ph)*.12;
+g.save();g.translate(cx,cy-Math.abs(Math.sin(ph))*1.2);g.scale(e.d<0?-k:k,k);g.lineCap="round";g.lineJoin="round";
+g.strokeStyle="#3b3b3b";g.lineWidth=1.6;
+for(const o of[0,Math.PI]){const a=ph+o,hx=o?3:-2,fx=hx+6*Math.sin(a),fy=16-4*Math.max(0,Math.cos(a));g.beginPath();g.moveTo(hx,4);g.lineTo(fx,fy);g.lineTo(fx+3,fy);g.stroke()}
+g.fillStyle="#2b2b2b";g.beginPath();g.moveTo(-8,-1);g.lineTo(-16,-3);g.lineTo(-15,3);g.closePath();g.fill();
+g.fillStyle="#f7f7f7";g.beginPath();g.ellipse(0,0,11,5.6,0,0,7);g.fill();
+g.save();g.translate(-1,-2);g.rotate(.14+wf);g.fillStyle="#ffffff";g.strokeStyle="#cfd8dc";g.lineWidth=.8;g.beginPath();g.ellipse(-9,0,10,3.4,0,0,7);g.fill();g.stroke();
+g.fillStyle="#2b2b2b";g.beginPath();g.ellipse(-17,0,3.2,2.3,0,0,7);g.fill();g.restore();
+g.strokeStyle="#2b2b2b";g.lineWidth=3;g.beginPath();g.moveTo(7,-3);g.quadraticCurveTo(13,-6+hb*.5,12,-14+hb);g.stroke();
+g.fillStyle="#fff";g.strokeStyle="#cfd8dc";g.lineWidth=.8;g.beginPath();g.arc(12.5,-15.5+hb,3,0,7);g.fill();g.stroke();
+g.fillStyle="#d32f2f";g.beginPath();g.ellipse(12,-18+hb,2.2,1.4,0,0,7);g.fill();
+g.fillStyle="#f0b400";g.strokeStyle="#7a5a00";g.lineWidth=.8;g.beginPath();g.moveTo(14.6,-17.4+hb);g.lineTo(26,-15.3+hb);g.lineTo(14.6,-13.6+hb);g.closePath();g.fill();g.stroke();
+g.fillStyle="#000";g.beginPath();g.arc(13.4,-16+hb,.8,0,7);g.fill();g.restore()}
+function drawCrow(e){const hw=e.s*.75,cx=e.x+hw/2,cy=e.r*T+T/2,k=e.s/34,f=Math.sin(tm*12+e.ph);
+g.save();g.translate(cx,cy+f*1.5);g.scale(e.d<0?-k:k,k);g.lineCap="round";
+g.fillStyle="#15151c";g.beginPath();g.moveTo(-8,-1);g.lineTo(-16,-4);g.lineTo(-15,3);g.closePath();g.fill();
+g.strokeStyle="#15151c";g.lineWidth=1.6;g.beginPath();g.moveTo(-2,6);g.lineTo(-3,10);g.moveTo(3,6);g.lineTo(4,10);g.stroke();
+g.fillStyle="#1c1c26";g.beginPath();g.ellipse(0,1,11,6.5,0,0,7);g.fill();
+g.fillStyle="#3a3a4a";g.beginPath();g.ellipse(1,-2,6,2,-.1,0,7);g.fill();
+g.save();g.translate(-1,-2);g.rotate(.5+.7*f);g.fillStyle="#2a2a38";g.beginPath();g.ellipse(-9,0,10.5,3.8,0,0,7);g.fill();
+g.fillStyle="#101016";g.beginPath();g.ellipse(-17,0,3.4,2.6,0,0,7);g.fill();g.restore();
+g.fillStyle="#1c1c26";g.beginPath();g.arc(8,-4.5,4.8,0,7);g.fill();
+g.fillStyle="#2f2f3a";g.beginPath();g.moveTo(11.5,-6.2);g.lineTo(19,-3.8);g.lineTo(11.5,-1.8);g.closePath();g.fill();
+g.fillStyle="#cfd8dc";g.beginPath();g.arc(9.4,-5.8,1.3,0,7);g.fill();
+g.fillStyle="#000";g.beginPath();g.arc(9.7,-5.8,.7,0,7);g.fill();g.restore()}
+function drawE(e){if(e.t==="gull"){drawGull(e);return}if(e.t==="crane"){drawCrane(e);return}if(e.t==="crow"){drawCrow(e);return}const hw=e.s*.75,cx=e.x+hw/2,cy=e.r*T+T/2;
+g.save();g.translate(cx,cy);
+if(e.t!=="frog"&&e.d>0)g.scale(-1,1);
+g.font=e.s+"px serif";g.textAlign="center";g.textBaseline="middle";g.fillText(EM[e.t],0,2);g.restore()}
+function drawP(){const s=stage(),cx=p.x+T/2,cy=p.y+T/2,col=["#2d3f2a","#3f6b2a","#4f9a2f","#5fd04a"][s];
+g.save();g.translate(cx,cy);g.lineCap="round";
+if(s<3){g.strokeStyle=col;g.lineWidth=[5,4,2.5][s];const w=Math.sin(tm*14)*4;g.beginPath();g.moveTo(0,6);g.quadraticCurveTo(w,14,-w,s===2?15:20);g.stroke()}
+g.strokeStyle=col;g.lineWidth=3;
+if(s>=1){g.beginPath();g.moveTo(-6,6);g.lineTo(-13,13);g.moveTo(6,6);g.lineTo(13,13);g.stroke()}
+if(s>=2){g.beginPath();g.moveTo(-7,-3);g.lineTo(-14,-8);g.moveTo(7,-3);g.lineTo(14,-8);g.stroke()}
+g.fillStyle=col;g.beginPath();g.ellipse(0,0,s===3?10:9,s===3?11:9,0,0,7);g.fill();
+g.fillStyle="#fff";g.beginPath();g.arc(-4,-6,3,0,7);g.arc(4,-6,3,0,7);g.fill();
+g.fillStyle="#000";g.beginPath();g.arc(-4,-7,1.4,0,7);g.arc(4,-7,1.4,0,7);g.fill();g.restore()}
+function msg(a,b){g.fillStyle="rgba(0,0,0,.6)";g.fillRect(0,0,W,ROWS*T);g.fillStyle="#fff";g.textAlign="center";
+g.font="bold 34px system-ui,sans-serif";g.fillText(a,W/2,220);g.font="16px system-ui,sans-serif";g.fillText(b,W/2,260)}
+function draw(){bg();E.forEach(drawE);if(st!=="title")drawP();
+if(flash>0){g.fillStyle=`rgba(255,0,0,${flash})`;g.fillRect(0,0,W,ROWS*T)}
+if(banner>0&&st==="play"){g.fillStyle="#fff";g.textAlign="center";g.font="bold 28px system-ui,sans-serif";g.strokeStyle="#000";g.lineWidth=4;g.strokeText("Level "+level,W/2,250);g.fillText("Level "+level,W/2,250)}
+if(st==="title")msg("Tadpole Hop","Swim to land and grow legs! Tap or press a key");
+if(st==="over")msg("Game over","Score "+score+"  Best "+hi+"  Tap to play again");
+$("lv").textContent="Lv "+level;$("hp").textContent="❤️".repeat(Math.max(0,lives));$("sc").textContent="Score "+score;$("sg").textContent=st==="title"?"":NAMES[stage()]}
+function loop(t){const dt=Math.min(.05,(t-last)/1000||0);last=t;update(dt);draw();requestAnimationFrame(loop)}
+// Frog music: a bouncy swamp tune with bloopy bass, ribbits and cricket chirps (a little faster each level)
+let musicOn=true,mt=null,mStep=0,mNext=0,MG=null;
+const MEL=[659.25,0,783.99,659.25,0,587.33,523.25,0, 659.25,0,783.99,880,0,783.99,659.25,0, 587.33,0,659.25,587.33,0,523.25,440,0, 523.25,587.33,659.25,0,587.33,0,523.25,0];
+const BAS=[130.81,0,0,130.81,0,0,130.81,0, 98,0,0,98,0,0,98,0, 110,0,0,110,0,0,110,0, 98,0,0,98,0,0,98,0];
+const mdur=()=>60/(124+Math.min(level-1,6)*6)/4;
+function bus(a){if(!MG){MG=a.createGain();MG.gain.value=.7;MG.connect(a.destination)}return MG}
+function nt(ty,f,t,d,v,lp,f0){const a=A,o=a.createOscillator(),k=a.createGain();o.type=ty;o.frequency.setValueAtTime(f0||f,t);if(f0)o.frequency.exponentialRampToValueAtTime(f,t+.07);
+k.gain.setValueAtTime(v,t);k.gain.exponentialRampToValueAtTime(.001,t+d);let n=o;if(lp){const b=a.createBiquadFilter();b.type="lowpass";b.frequency.value=lp;o.connect(b);n=b}
+n.connect(k);k.connect(bus(a));o.start(t);o.stop(t+d+.02)}
+function croak(t,f){const a=A,o=a.createOscillator(),k=a.createGain(),b=a.createBiquadFilter();o.type="sawtooth";o.frequency.setValueAtTime(f,t);o.frequency.exponentialRampToValueAtTime(f*.6,t+.09);
+b.type="bandpass";b.frequency.value=700;b.Q.value=3;k.gain.setValueAtTime(.0001,t);k.gain.exponentialRampToValueAtTime(.2,t+.015);k.gain.exponentialRampToValueAtTime(.001,t+.1);
+o.connect(b);b.connect(k);k.connect(bus(a));o.start(t);o.stop(t+.12)}
+function mstep(i,t,d){const m=MEL[i],b=BAS[i];
+if(m)nt("square",m,t,d*1.6,.04,2200);
+if(b)nt("sine",b,t,d*2.6,.3,0,b*2);
+if(i%4===2)nt("triangle",900,t,.03,.05);
+if(i===14||i===30){croak(t,150);croak(t+d*1.1,120)}
+if(i===5||i===21)for(let j=0;j<3;j++)nt("sine",3300,t+j*.05,.03,.025)}
+function sched(){if(!A||!musicOn||st!=="play"){stopMusic();return}
+if(mNext<A.currentTime-.2)mNext=A.currentTime+.05;
+while(mNext<A.currentTime+.15){const d=mdur();mstep(mStep,mNext,d);mStep=(mStep+1)%32;mNext+=d}}
+function startMusic(){if(!musicOn||mt)return;try{A=A||new(window.AudioContext||window.webkitAudioContext)();if(A.state==="suspended")A.resume()}catch(e){return}
+mStep=0;mNext=A.currentTime+.05;mt=setInterval(sched,25)}
+function stopMusic(){clearInterval(mt);mt=null}
+function toggleMusic(){musicOn=!musicOn;$("mu").textContent=musicOn?"🔊 Music on":"🔇 Music off";if(musicOn&&st==="play")startMusic();else stopMusic()}
+$("mu").addEventListener("click",e=>{toggleMusic();e.currentTarget.blur()});
+document.addEventListener("visibilitychange",()=>{if(document.hidden)stopMusic();else if(st==="play")startMusic()});
+reset();spawn();requestAnimationFrame(loop);
+const K={ArrowUp:[0,-1],w:[0,-1],ArrowDown:[0,1],s:[0,1],ArrowLeft:[-1,0],a:[-1,0],ArrowRight:[1,0],d:[1,0]};
+addEventListener("keydown",e=>{if(e.target.closest&&e.target.closest("#mu"))return;if(e.key==="m"||e.key==="M"){toggleMusic();return}
+const m=K[e.key];if(m){e.preventDefault();mv(m[0],m[1])}else if(st!=="play")newGame()});
+document.querySelectorAll("#pad button").forEach(b=>b.addEventListener("pointerdown",e=>{e.preventDefault();const[d,r]=b.dataset.d.split(",").map(Number);mv(d,r)}));
+C.addEventListener("pointerdown",e=>{tx=e.clientX;ty=e.clientY;if(st!=="play")newGame()});
+C.addEventListener("pointerup",e=>{const dx=e.clientX-tx,dy=e.clientY-ty;if(Math.max(Math.abs(dx),Math.abs(dy))<20)return;
+if(Math.abs(dx)>Math.abs(dy))mv(dx>0?1:-1,0);else mv(0,dy>0?1:-1)});
+</script></body></html>

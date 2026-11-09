@@ -3,12 +3,26 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Tadpole Hop</title>
 <style>
-:root{--bg:#e6f5ee;--fg:#12332a;--btn:#2e9d6a;--btnfg:#fff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+:root{--bg:#e6f5ee;--fg:#12332a;--btn:#2e9d6a;--btnfg:#fff;--ban:#2e7d32;--banfg:#f4fbef;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1f1a;--fg:#d8f3e6;--btn:#238a5a;--btnfg:#fff;color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#0e1f1a;--fg:#d8f3e6;--btn:#238a5a;--btnfg:#fff;color-scheme:dark}
-body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;flex-direction:column;align-items:center;padding:8px;gap:8px}
-h1{margin:4px 0 0;font-size:1.5rem}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1f1a;--fg:#d8f3e6;--btn:#238a5a;--btnfg:#fff;--ban:#1d4d26;--banfg:#e8f5e2;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e1f1a;--fg:#d8f3e6;--btn:#238a5a;--btnfg:#fff;--ban:#1d4d26;--banfg:#e8f5e2;color-scheme:dark}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;flex-direction:column;align-items:center}
+.banner{width:100%;background:var(--ban);color:var(--banfg);text-align:center;padding:14px 16px}
+.banner h1{display:flex;align-items:center;justify-content:center;gap:10px;margin:0;font-size:clamp(24px,6vw,34px);font-weight:800}
+.banner svg{width:36px;height:36px;flex:none}
+.page-layout{display:grid;grid-template-columns:72px minmax(0,480px);gap:14px;align-items:start;justify-content:center;width:100%;max-width:760px;padding:16px;margin:0 auto}
+.game-main{grid-column:2;min-width:0;width:100%;display:flex;flex-direction:column;align-items:center;gap:8px}
+.game-nav{grid-column:1;grid-row:1;position:sticky;top:20px;margin-top:0;display:flex;flex-direction:column;align-items:center;gap:8px;width:72px}
+.game-nav h2{margin:0;font-size:16px;text-align:center}
+.game-nav a{position:relative;display:block;width:58px;height:46px;border-radius:8px;color:var(--fg);text-decoration:none;background:var(--btn)}
+.game-nav a:hover .game-thumb{filter:brightness(1.12)}
+.game-nav a:focus-visible{outline:3px solid #238a5a;outline-offset:3px}
+.game-nav a::after{content:attr(data-tooltip);position:absolute;z-index:5;left:calc(100% + 8px);top:50%;transform:translateY(-50%);width:max-content;padding:6px 9px;border-radius:6px;background:#12332a;color:#fff;font-size:12px;font-weight:500;line-height:1.35;white-space:pre-line;opacity:0;visibility:hidden;pointer-events:none}
+.game-nav a:hover::after,.game-nav a:focus-visible::after{opacity:1;visibility:visible}
+.game-thumb{display:flex;flex-direction:column;justify-content:space-around;gap:2px;width:100%;height:100%;padding:3px;border:2px solid #238a5a;border-radius:8px;overflow:hidden;background:linear-gradient(to bottom,#5cb85c 0 9%,#b79a6b 9% 45%,#237c9f 45% 93%,#5cb85c 93%);font-size:8px;line-height:1}
+.game-thumb span{display:flex;justify-content:space-around;white-space:nowrap}
 #hud{display:flex;justify-content:space-between;width:min(100%,480px);font-weight:600;font-size:.95rem}
 .game{position:relative;width:min(100%,480px)}
 canvas{width:100%;height:auto;border-radius:12px;touch-action:none;display:block}
@@ -36,8 +50,19 @@ canvas{width:100%;height:auto;border-radius:12px;touch-action:none;display:block
 #pad button:active{filter:brightness(1.2)}
 p{margin:0;font-size:.85rem;opacity:.8;text-align:center}
 #mu{font:inherit;font-size:.85rem;border:0;border-radius:10px;padding:6px 12px;background:var(--btn);color:var(--btnfg);touch-action:manipulation}
+@media(max-width:760px){.page-layout{display:flex;flex-direction:column;align-items:stretch;gap:10px}.game-main{width:min(100%,480px);align-self:center;order:2}.game-nav{position:static;flex-direction:row;align-items:center;justify-content:flex-start;gap:8px;width:100%;margin:0;order:1}.game-nav h2{font-size:14px}.game-nav a::after{left:calc(100% + 8px)}}
 </style></head><body>
-<h1>🐸 Tadpole Hop</h1>
+<header class="banner">
+<h1><svg viewBox="0 0 48 48" role="img" aria-label="Tadpole">
+<path d="M14 29C6 36 7 42 17 39c4-1 6-4 8-7" fill="none" stroke="#7ee05a" stroke-width="5" stroke-linecap="round"/>
+<ellipse cx="27" cy="27" rx="13" ry="10" fill="#57d65b"/>
+<circle cx="20" cy="17" r="6" fill="#7ee05a"/><circle cx="33" cy="17" r="6" fill="#7ee05a"/>
+<circle cx="21" cy="16" r="2" fill="#17341c"/><circle cx="34" cy="16" r="2" fill="#17341c"/>
+<path d="M23 30q4 3 8 0" fill="none" stroke="#174c26" stroke-width="1.8" stroke-linecap="round"/>
+</svg>Tadpole Hop</h1>
+</header>
+<div class="page-layout">
+<main class="game-main">
 <div id="hud"><span id="lv"></span><span id="hp"></span><span id="sc"></span><span id="sg"></span></div>
 <div class="game">
 <canvas id="c" width="480" height="520"></canvas>
@@ -55,6 +80,29 @@ p{margin:0;font-size:.85rem;opacity:.8;text-align:center}
 <div id="pad"><span></span><button data-d="0,-1">▲</button><span></span><button data-d="-1,0">◀</button><button data-d="0,1">▼</button><button data-d="1,0">▶</button></div>
 <p>Arrow keys, WASD, swipe or buttons. Reach the grass to grow into a frog!</p>
 <button id="mu" type="button" aria-label="Turn music on or off">🔊 Music on</button>
+</main>
+<nav class="game-nav" aria-label="Other games">
+<h2>Games</h2>
+<a href="frogger.html" data-tooltip="Click to play&#10;Finn the Frogger" aria-label="Click to play Finn the Frogger">
+<svg class="game-thumb" viewBox="0 0 116 92" aria-hidden="true">
+<rect width="116" height="92" fill="#287eae"/>
+<path d="M0 9h116v13H0zm0 26h116v13H0z" fill="#4a9cc1"/>
+<path d="M0 22q10-6 20 0t20 0 20 0 20 0 20 0 20 0M0 48q10-6 20 0t20 0 20 0 20 0 20 0 20 0" fill="none" stroke="#bcecff" stroke-opacity=".65" stroke-width="2"/>
+<rect y="51" width="116" height="10" fill="#459647"/>
+<rect y="61" width="116" height="25" fill="#303941"/>
+<path d="M0 73h116" stroke="#f4dc71" stroke-width="2" stroke-dasharray="10 8"/>
+<rect y="86" width="116" height="6" fill="#459647"/>
+<g transform="translate(57 53)">
+<ellipse cy="3" rx="13" ry="10" fill="#57d65b"/>
+<ellipse cx="-8" cy="-7" rx="4" ry="5" fill="#57d65b"/><ellipse cx="8" cy="-7" rx="4" ry="5" fill="#57d65b"/>
+<circle cx="-8" cy="-8" r="1.5" fill="#102c19"/><circle cx="8" cy="-8" r="1.5" fill="#102c19"/>
+<path d="M-5 5q5 4 10 0" fill="none" stroke="#174c26" stroke-width="1.5" stroke-linecap="round"/>
+</g>
+<g transform="translate(92 67)" fill="#e75a4f"><path d="M0 0q8-7 16 0-8 7-16 0m0 0-6-5v10z"/></g>
+</svg>
+</a>
+</nav>
+</div>
 <script>
 const C=document.getElementById("c"),g=C.getContext("2d"),T=40,COLS=12,ROWS=13,W=480;
 const $=id=>document.getElementById(id);

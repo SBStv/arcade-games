@@ -15,7 +15,18 @@ body{margin:0;min-height:100%;background:var(--bg);color:var(--fg);font-family:s
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--ban);z-index:10}
 .banner{width:100%;background:var(--ban);color:var(--ban-fg);text-align:center;padding:14px 16px}
 .banner h1{margin:0;font-size:clamp(24px,6vw,34px);font-weight:800}
-.wrap{width:100%;max-width:552px;padding:16px;margin:auto 0}
+.wrap{width:100%;max-width:760px;padding:16px;margin:0 auto}
+.game-layout{display:grid;grid-template-columns:72px minmax(0,480px);gap:14px;align-items:start;justify-content:center}
+.game-main{min-width:0;grid-column:2}
+.game-nav{grid-column:1;grid-row:1;position:sticky;top:20px;margin-top:0;display:flex;flex-direction:column;align-items:center;gap:8px;width:72px}
+.game-nav h2{margin:0;font-size:16px;text-align:center}
+.game-nav a{position:relative;display:block;width:58px;height:46px;border-radius:8px;color:var(--fg);text-decoration:none;background:var(--btn)}
+.game-nav a:hover .game-thumb{filter:brightness(1.12)}
+.game-nav a:focus-visible{outline:3px solid var(--ban);outline-offset:3px}
+.game-nav a::after{content:attr(data-tooltip);position:absolute;z-index:5;left:calc(100% + 8px);top:50%;transform:translateY(-50%);width:max-content;padding:6px 9px;border-radius:6px;background:#17261a;color:#fff;font-size:12px;font-weight:500;line-height:1.35;white-space:pre-line;opacity:0;visibility:hidden;pointer-events:none}
+.game-nav a:hover::after,.game-nav a:focus-visible::after{opacity:1;visibility:visible}
+.game-thumb{display:flex;flex-direction:column;justify-content:space-around;gap:2px;width:100%;height:100%;padding:3px;border:2px solid var(--ban);border-radius:8px;overflow:hidden;background:linear-gradient(to bottom,#1a5c2a 0 17%,#1c5a99 17% 56%,#3f8f3f 56% 64%,#2b2f36 64% 93%,#3f8f3f 93%);font-size:8px;line-height:1}
+.game-thumb span{display:flex;justify-content:space-around;white-space:nowrap}
 .hud{display:flex;justify-content:space-between;gap:8px;margin-bottom:8px;font-size:15px;font-variant-numeric:tabular-nums}
 .hud span{color:var(--muted)}
 .hud b{color:var(--fg)}
@@ -37,7 +48,7 @@ canvas{display:block;width:100%;height:auto;aspect-ratio:1;border-radius:10px;to
 .lv .nm{font-size:10px;line-height:1.15;color:var(--muted);text-align:center}
 .lv:disabled{opacity:.45;cursor:default}
 .lv:focus-visible{outline:3px solid var(--fg);outline-offset:2px}
-@media (max-width:760px){.levels{position:static;transform:none;flex-direction:row;flex-wrap:wrap;justify-content:center;max-height:none;margin-top:10px;padding:0}}
+@media (max-width:760px){.game-layout{display:flex;flex-direction:column;align-items:stretch;gap:10px}.game-main{width:min(100%,480px);align-self:center;order:2}.game-nav{position:static;flex-direction:row;align-items:center;justify-content:flex-start;gap:8px;width:100%;margin:0;order:1}.game-nav h2{font-size:14px}.game-nav a::after{left:calc(100% + 8px);top:50%}.levels{position:static;transform:none;flex-direction:row;flex-wrap:wrap;justify-content:center;max-height:none;margin-top:10px;padding:0}}
 .board{position:relative}
 .entry{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(88%,360px);max-height:90%;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;background:rgba(10,24,14,.95);color:#e2efe0;border-radius:14px;padding:12px 14px;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.5);z-index:2}
 .entry::-webkit-scrollbar{display:none}
@@ -77,6 +88,8 @@ canvas{display:block;width:100%;height:auto;aspect-ratio:1;border-radius:10px;to
   <h1>Finn the Frogger</h1>
 </header>
 <div class="wrap">
+  <div class="game-layout">
+  <main class="game-main">
   <div class="hud">
     <span>Score <b id="score">0</b></span>
     <span>Level <b id="level">1</b></span>
@@ -120,6 +133,28 @@ canvas{display:block;width:100%;height:auto;aspect-ratio:1;border-radius:10px;to
     <button class="left" data-x="-1" data-y="0" aria-label="Hop left">◀</button>
     <button class="down" data-x="0" data-y="1" aria-label="Hop down">▼</button>
     <button class="right" data-x="1" data-y="0" aria-label="Hop right">▶</button>
+  </div>
+  </main>
+  <nav class="game-nav" aria-label="Other games">
+    <h2>Games</h2>
+    <a href="Tadpole%20Hop.html" data-tooltip="Click to play&#10;Tadpole Hop" aria-label="Click to play Tadpole Hop">
+      <svg class="game-thumb" viewBox="0 0 116 92" aria-hidden="true">
+        <rect width="116" height="92" fill="#287c9f"/>
+        <path d="M0 9h116v18H0zm0 38h116v17H0zm0 34h116v24H0z" fill="#19516d"/>
+        <path d="M0 28q10-6 20 0t20 0 20 0 20 0 20 0 20 0M0 65q10-6 20 0t20 0 20 0 20 0 20 0 20 0" fill="none" stroke="#75c5d5" stroke-opacity=".55" stroke-width="2"/>
+        <rect y="27" width="116" height="8" fill="#5cb85c"/>
+        <g transform="translate(53 53)">
+          <path d="M-17 1Q-30-10-28 1q-2 11 11 3" fill="#5fd04a"/>
+          <ellipse rx="17" ry="12" fill="#4aab39"/>
+          <circle cx="-5" cy="-9" r="6" fill="#5fd04a"/><circle cx="7" cy="-9" r="6" fill="#5fd04a"/>
+          <circle cx="-5" cy="-10" r="2" fill="#142b1b"/><circle cx="7" cy="-10" r="2" fill="#142b1b"/>
+          <path d="M-3 5q4 3 8 0" fill="none" stroke="#183d20" stroke-width="1.5" stroke-linecap="round"/>
+        </g>
+        <g transform="translate(88 36)" fill="#a9e3ed"><path d="M0 0q8-7 16 0-8 7-16 0m0 0-6-5v10z"/></g>
+        <g transform="translate(19 74)" fill="#80d5e5"><path d="M0 0q7-6 14 0-7 6-14 0m0 0-5-4v8z"/></g>
+      </svg>
+    </a>
+  </nav>
   </div>
 </div>
 <script>

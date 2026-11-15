@@ -10,12 +10,13 @@
 :root[data-theme="dark"]{--bg:#05070d;--fg:#e8f1ff;--dim:#7d8aa5;--line:#e8f1ff;--accent:#7cffb2}
 html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:ui-monospace,Menlo,Consolas,monospace}
 body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;touch-action:none;user-select:none;-webkit-user-select:none}
-canvas{width:min(100vw,calc((100vh - 120px)*4/3));aspect-ratio:4/3;background:#000;border:1px solid #1b2436;border-radius:6px;max-width:100%}
+.game-wrap{position:relative;width:min(100vw,calc((100vh - 120px)*4/3));max-width:100%}
+canvas{display:block;width:100%;height:auto;aspect-ratio:4/3;background:#000;border:1px solid #1b2436;border-radius:6px}
 .pad{display:none;gap:8px;flex-wrap:wrap;justify-content:center}
 .pad button{width:52px;height:56px;border-radius:12px;border:1px solid #2a3550;background:#0d1424;color:var(--fg);font:20px inherit}
 .pad button:active{background:#1c2a48}
 .hint{color:var(--dim);font-size:12px;text-align:center;padding:0 12px}
-.entry{display:none;gap:8px;align-items:center}.entry input{width:180px;padding:8px 10px;border-radius:8px;border:1px solid #2a3550;background:#0d1424;color:var(--fg);font:18px ui-monospace,Menlo,Consolas,monospace;text-transform:uppercase;text-align:center;user-select:text;-webkit-user-select:text}.entry button{padding:8px 14px;border-radius:8px;border:1px solid #2a3550;background:#16213a;color:var(--fg);font-size:14px;cursor:pointer}
+.entry{display:none;position:absolute;align-items:stretch;gap:3px;z-index:2}.entry input{flex:1;min-width:0;width:0;padding:0 2px;border:1px solid #7cffb2;border-radius:2px;background:#0d1424;color:var(--fg);font-family:ui-monospace,Menlo,Consolas,monospace;text-transform:uppercase;text-align:left;user-select:text;-webkit-user-select:text}.entry button{flex:none;padding:0 2px;border:1px solid #2a3550;border-radius:3px;background:#16213a;color:var(--fg);font-family:inherit;cursor:pointer}
 .mbtn{background:none;border:1px solid #2a3550;color:var(--dim);border-radius:8px;padding:4px 12px;font-size:12px;font-family:inherit;cursor:pointer}
 .home{position:fixed;top:12px;left:12px;z-index:2;padding:7px 10px;border:1px solid #2a3550;border-radius:8px;background:#0d1424;color:var(--fg);font:12px ui-monospace,Menlo,Consolas,monospace;text-decoration:none}
 .home:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
@@ -24,8 +25,10 @@ canvas{width:min(100vw,calc((100vh - 120px)*4/3));aspect-ratio:4/3;background:#0
 </head>
 <body>
 <a class="home" href="index.html">← Main page</a>
+<div class="game-wrap">
 <canvas id="c" width="800" height="600"></canvas>
-<div id="entry" class="entry"><input id="nm" maxlength="10" placeholder="YOUR NAME" autocomplete="off" autocapitalize="characters" spellcheck="false"><button id="nmok">SAVE</button></div>
+<div id="entry" class="entry"><input id="nm" maxlength="10" placeholder="YOUR NAME" aria-label="Your name in the Top 5 list" autocomplete="off" autocapitalize="characters" spellcheck="false"><button id="nmok" type="button">SAVE</button></div>
+</div>
 <div class="pad">
 <button data-k="left">◀</button><button data-k="right">▶</button><button data-k="up">▲</button><button data-k="fire">●</button><button data-k="hyper">H</button><button data-k="bomb">B</button>
 </div>
@@ -101,19 +104,20 @@ function schedBar2(t){const ti=(level-1)%4,T=TR[ti];if(ti!==curTr){curTr=ti;mBar
  let st=0;T.mel[i].forEach(([m,d])=>{const lm=m+hi>93?m:m+hi;mvoice(mtof(lm),t+st*S,d*S*.95,T.ld,.035,3200,.02,.1,5);st+=d});
  mBar++;return 16*S}
 // ---- Top 5 scoreboard (saved on this device) ----
-let board=[],lastE=null;
+let board=[],lastE=null,entryE=null;
 try{board=JSON.parse(localStorage.getItem('ast_board')||'[]').filter(x=>x&&typeof x.n==='string'&&+x.s>=0).slice(0,5)}catch(err){board=[]}
 if(board.length)hi=Math.max(hi,board[0].s);
 const nmEl=document.getElementById('nm'),entryEl=document.getElementById('entry');
 function qualifies(s){return s>0&&(board.length<5||s>board[board.length-1].s)}
-function endGame(){if(qualifies(score)){state='entry';entryEl.style.display='flex';nmEl.value='';setTimeout(()=>{try{nmEl.focus()}catch(err){}},50)}}
-function submitScore(){if(state!=='entry')return;const n=(nmEl.value||'').replace(/[^A-Za-z0-9 _.!-]/g,'').trim().toUpperCase().slice(0,10)||'PLAYER';lastE={n,s:score};board.push(lastE);board.sort((a,b)=>b.s-a.s);board=board.slice(0,5);try{localStorage.setItem('ast_board',JSON.stringify(board.map(x=>({n:x.n,s:x.s}))))}catch(err){}entryEl.style.display='none';try{nmEl.blur()}catch(err){}state='over'}
+function endGame(){if(qualifies(score)){state='entry';entryE={n:'',s:score};entryEl.style.display='flex';nmEl.value='';setTimeout(()=>{try{nmEl.focus()}catch(err){}},50)}}
+function submitScore(){if(state!=='entry')return;const n=(nmEl.value||'').replace(/[^A-Za-z0-9 _.!-]/g,'').trim().toUpperCase().slice(0,10)||'PLAYER';lastE={n,s:score};board.push(lastE);board.sort((a,b)=>b.s-a.s);board=board.slice(0,5);entryE=null;try{localStorage.setItem('ast_board',JSON.stringify(board.map(x=>({n:x.n,s:x.s}))))}catch(err){}entryEl.style.display='none';try{nmEl.blur()}catch(err){}state='over'}
 nmEl.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter'){e.preventDefault();submitScore()}});
 document.getElementById('nmok').addEventListener('click',submitScore);
-function drawBoard(y){ctx.textAlign='center';ctx.fillStyle='#7cffb2';ctx.font='bold 18px ui-monospace,monospace';ctx.fillText('TOP 5',W/2,y);ctx.font='16px ui-monospace,monospace';
- for(let i=0;i<5;i++){const e=board[i],yy=y+26+i*22;ctx.fillStyle=e?(e===lastE?'#ffd27a':'#e8f1ff'):'#4a5570';ctx.textAlign='right';ctx.fillText((i+1)+'.',W/2-150,yy);ctx.textAlign='left';ctx.fillText(e?e.n:'----------',W/2-135,yy);ctx.textAlign='right';ctx.fillText(e?String(e.s):'-----',W/2+150,yy)}
+function positionNameEntry(y,rank){const scale=cv.clientWidth/W;entryEl.style.left=`${(W/2-135)*scale}px`;entryEl.style.top=`${(y+26+rank*22-11)*scale}px`;entryEl.style.width=`${220*scale}px`;entryEl.style.height=`${18*scale}px`;nmEl.style.fontSize=`${16*scale}px`;document.getElementById('nmok').style.fontSize=`${12*scale}px`}
+function drawBoard(y,editing=false){let entries=board;if(editing&&entryE){entries=[...board,entryE].sort((a,b)=>b.s-a.s).slice(0,5);positionNameEntry(y,entries.indexOf(entryE))}ctx.textAlign='center';ctx.fillStyle='#7cffb2';ctx.font='bold 18px ui-monospace,monospace';ctx.fillText('TOP 5',W/2,y);ctx.font='16px ui-monospace,monospace';
+ for(let i=0;i<5;i++){const e=entries[i],yy=y+26+i*22;ctx.fillStyle=e?(e===lastE?'#ffd27a':'#e8f1ff'):'#4a5570';ctx.textAlign='right';ctx.fillText((i+1)+'.',W/2-150,yy);ctx.textAlign='left';ctx.fillText(e?(e===entryE?'':e.n):'----------',W/2-135,yy);ctx.textAlign='right';ctx.fillText(e?String(e.s):'-----',W/2+150,yy)}
  ctx.textAlign='center'}
-function drawEntry(){ctx.textAlign='center';ctx.fillStyle='rgba(0,0,0,.6)';ctx.fillRect(0,0,W,H);ctx.fillStyle='#ffd27a';ctx.font='bold 44px ui-monospace,monospace';ctx.fillText('NEW HIGH SCORE!',W/2,H/2-60);ctx.fillStyle='#e8f1ff';ctx.font='28px ui-monospace,monospace';ctx.fillText(String(score),W/2,H/2-20);ctx.font='18px ui-monospace,monospace';ctx.fillStyle='#7cffb2';ctx.fillText('Type your name below (10 characters max)',W/2,H/2+25);ctx.fillText('then press Enter or SAVE',W/2,H/2+49)}
+function drawEntry(){ctx.textAlign='center';ctx.fillStyle='rgba(0,0,0,.6)';ctx.fillRect(0,0,W,H);ctx.fillStyle='#ffd27a';ctx.font='bold 38px ui-monospace,monospace';ctx.fillText('NEW HIGH SCORE!',W/2,H/2-110);ctx.fillStyle='#e8f1ff';ctx.font='20px ui-monospace,monospace';ctx.fillText(String(score),W/2,H/2-78);ctx.fillStyle='#7cffb2';ctx.font='16px ui-monospace,monospace';ctx.fillText('Enter your name in the highlighted Top 5 row',W/2,H/2-45);drawBoard(H/2+5,true)}
 // ---- Level names ----
 const LV=[['Outer Belt','One shot splits a rock into smaller pieces.'],['Debris Field','Colours show how many shots a rock takes.'],['The Red Ships','Red ships hide behind asteroids and fire only now and then.'],['Yellow Alert','More ships and five rock colours. Yellow ships shoot fast.'],['Hard Rain','Armoured rocks are everywhere.'],['Crimson Gauntlet','Stay close to cover and keep moving.'],['The Graveyard','Nothing out here wants to stay dead.'],['Iron Storm','Heavy rocks and heavier fire.'],['Event Horizon','The pull gets stronger.'],['Last Light','Hold the line.']];
 function lvlName(n){return LV[n-1]||['Deep Space '+n,'No one has come this far.']}
@@ -157,6 +161,8 @@ function schedBar3(t){const ti=(level-1)%4,T=TD[ti];if(ti!==curTr){curTr=ti;mBar
  mBar++;return L}
 // ---- Textured rocks, solid ships, bomb bubble ----
 let bub=null,bomb=false,hyperCd=0,cloak=0,bflash=0;
+function mothershipDelay(){const base=Math.max(300,1100-(level-1)*110);return R(base*.8,base*1.2)}
+function mothershipSpeed(){return 1.6*(1+Math.max(0,level-3)*.18)}
 function drawRock(r){const n=r.sh.length,rr=r.r,col=HC[Math.min(r.hp,6)];
  const path=()=>{ctx.beginPath();for(let i=0;i<n;i++){const a=i/n*TAU,x=Math.cos(a)*rr*r.sh[i],y=Math.sin(a)*rr*r.sh[i];i?ctx.lineTo(x,y):ctx.moveTo(x,y)}ctx.closePath()};
  if(!r.cr){r.cr=[];const c=2+r.s*2;for(let i=0;i<c;i++){const a=R(0,TAU),d=R(0,.6)*rr;r.cr.push({x:Math.cos(a)*d,y:Math.sin(a)*d,s:R(.1,.22)*rr})}}
@@ -204,7 +210,7 @@ function updateAliens(dt){aliens=aliens.filter(a=>!a.d);
   a.x+=dx/d*sp*dt+(near?c.vx*dt:0);a.y+=dy/d*sp*dt+(near?c.vy*dt:0);
   if(!a.in){if(a.x>10&&a.x<W-10&&a.y>10&&a.y<H-10)a.in=true}else{a.x=Math.max(14,Math.min(W-14,a.x));a.y=Math.max(14,Math.min(H-14,a.y))}
   a.ang=Math.atan2(py-a.y,px-a.x)}}
-function drawAliens(){for(const a of aliens){if(a.d)continue;ctx.save();ctx.translate(a.x,a.y);ctx.rotate(a.ang+Math.PI/2);ctx.strokeStyle=a.fl>0?'#fff':a.kind==='y'?'#ffd23f':'#ff6b6b';ctx.shadowColor=a.kind==='y'?'#ffb000':'#ff4040';ctx.shadowBlur=10;ctx.lineWidth=1.8;ctx.beginPath();[[0,-15],[11,11],[0,5],[-11,11]].forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.closePath();ctx.stroke();ctx.beginPath();ctx.arc(0,0,2.5,0,TAU);ctx.stroke();ctx.restore();if(cloak>0){ctx.fillStyle='#b9a8ff';ctx.font='bold 14px ui-monospace,monospace';ctx.textAlign='center';ctx.fillText('?',a.x,a.y-20)}}}
+function drawAliens(){for(const a of aliens){if(a.d)continue;ctx.save();ctx.translate(a.x,a.y);ctx.rotate(a.ang+Math.PI/2);ctx.strokeStyle=a.fl>0?'#fff':a.kind==='y'?'#ffd23f':'#ff6b6b';ctx.shadowColor=a.kind==='y'?'#ffb000':'#ff4040';ctx.shadowBlur=10;ctx.lineWidth=1.8;ctx.beginPath();[[0,-15],[11,11],[0,5],[-11,11]].forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.closePath();ctx.stroke();ctx.beginPath();ctx.arc(0,0,2.5,0,TAU);ctx.stroke();ctx.restore()}}
 function hitRock(r,dmg,noSplit){r.hp-=dmg;if(r.hp>0){r.fl=8;boom(r.x,r.y,4,1.6);snd(240,.08,'square',.05,.6);return}r.d=1;if(noSplit){boom(r.x,r.y,6+r.s*3,2+r.s);addScore([0,100,50,20][r.s]);snd(130,.2,'sawtooth',.05,.4);dropPick(r.x,r.y)}else breakRock(r,true)}
 function rockPhysics(dt){
  for(const r of rocks){if(r.fl>0)r.fl-=dt;if(r.g>0)r.g-=dt}bumpT-=dt;
@@ -225,7 +231,7 @@ function drawMinis(){for(const m of minis){if(wing<150&&((wing/8)|0)%2)continue;
 function wrap(o){o.x=(o.x+W)%W;o.y=(o.y+H)%H}
 function newShip(){return{x:W/2,y:H/2,vx:0,vy:0,a:-Math.PI/2,inv:150,cool:0,thr:false}}
 function mkRock(x,y,s,hpO){const hp0=hpO||rollHp(s),sc=1+Math.min(level-1,10)*.05,n=10+(Math.random()*4|0),r=[12,22,40][s-1]*sc,sh=[];for(let i=0;i<n;i++)sh.push(R(.7,1.25));const sp=R(.6,1.4)*(4-s)*.55+.3,a=R(0,TAU);return{x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,s,r,sh,a:0,va:R(-.02,.02),hp:hp0,t0:hp0,fl:0,g:0}}
-function spawnLevel(){lifeGiven=false;aliens=[];if(level===3)ufoT=R(600,900);alienQ=level>=3?(level===3?2:Math.min(level,7)):0;alienT=R(240,360);rocks=[];const n=Math.min(3+level,11);for(let i=0;i<n;i++){let x,y;do{x=R(0,W);y=R(0,H)}while(Math.hypot(x-W/2,y-H/2)<160);rocks.push(mkRock(x,y,3))}msgT=220}
+function spawnLevel(){lifeGiven=false;aliens=[];ufoT=mothershipDelay();alienQ=level>=3?(level===3?2:Math.min(level,7)):0;alienT=R(240,360);rocks=[];const n=Math.min(3+level,11);for(let i=0;i<n;i++){let x,y;do{x=R(0,W);y=R(0,H)}while(Math.hypot(x-W/2,y-H/2)<160);rocks.push(mkRock(x,y,3))}msgT=220}
 function start(){startMusic();picks=[];weapon=null;wing=0;minis=[];shield=0;bub=null;bomb=false;hyperCd=0;cloak=0;blasts=[];warpT=0;score=0;lives=3;level=1;nextLife=10000;ship=newShip();bullets=[];parts=[];ufo=null;ufoT=900;spawnLevel();state='play';paused=false}
 function boom(x,y,n,sp){for(let i=0;i<n;i++){const a=R(0,TAU),v=R(.5,sp||3);parts.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,l:R(25,55)})}}
 function addScore(p){score+=p;if(score>=nextLife){lives++;nextLife+=10000;snd(880,.4,'sine',.07)}if(score>hi){hi=score;try{localStorage.setItem('ast_hi',hi)}catch(e){}}}
@@ -234,7 +240,7 @@ function shootSpecial(){if(ship.cool>0)return;const c=Math.cos(ship.a),s=Math.si
  if(weapon.type==='laser'){if(bullets.filter(b=>b.k==='l'&&!b.e).length>=12)return;[-6,6].forEach(o=>bullets.push({x:ship.x+c*14-s*o,y:ship.y+s*14+c*o,vx:ship.vx+c*12,vy:ship.vy+s*12,l:48,k:'l'}));ship.cool=6;snd(1400,.1,'sawtooth',.04,.25)}
  else{if(bullets.filter(b=>b.k==='r'&&!b.e).length>=3)return;bullets.push({x:ship.x+c*14,y:ship.y+s*14,vx:ship.vx+c*5,vy:ship.vy+s*5,ax:c*.1,ay:s*.1,l:70,k:'r'});ship.cool=24;snd(200,.35,'sawtooth',.07,2)}}
 function shootBasic(){if(ship&&ship.cool<=0&&bullets.filter(b=>!b.e&&!b.k&&!b.evil).length<4&&respawn<=0){bullets.push({x:ship.x+Math.cos(ship.a)*14,y:ship.y+Math.sin(ship.a)*14,vx:ship.vx+Math.cos(ship.a)*8,vy:ship.vy+Math.sin(ship.a)*8,l:55});ship.cool=8;snd(900,.12,'square',.04,.3)}}
-function hyper(){if(ship&&respawn<=0&&warpT<=0&&hyperCd<=0){hyperCd=900;cloak=300;boom(ship.x,ship.y,18,3);ship.x=R(40,W-40);ship.y=R(40,H-40);ship.vx=ship.vy=0;ship.inv=30;snd(200,.3,'sawtooth',.05,3);boom(ship.x,ship.y,18,3)}}
+function hyper(){if(ship&&respawn<=0&&warpT<=0&&hyperCd<=0){hyperCd=900;cloak=300;boom(ship.x,ship.y,18,3);ship.x=R(40,W-40);ship.y=R(40,H-40);ship.vx=ship.vy=0;ship.inv=120;snd(200,.3,'sawtooth',.05,3);boom(ship.x,ship.y,18,3)}}
 function killShip(){weapon=null;wing=0;minis=[];shield=0;boom(ship.x,ship.y,30,4);snd(120,.7,'sawtooth',.09,.3);lives--;respawn=110;ship.vx=ship.vy=0;if(lives<=0){state='over';stopMusic();endGame()}}
 function breakRock(r,byPlayer){boom(r.x,r.y,8+r.s*4,2+r.s);snd(r.s===3?80:r.s===2?130:200,.35,'sawtooth',.07,.4);if(byPlayer){addScore([0,100,50,20][r.s]);dropPick(r.x,r.y)}if(r.s>1){const cap=level<4?3:5,ch=()=>level>1&&Math.random()<.35?Math.min(cap,r.t0+1+(Math.random()<.4?1:0)):0,c1=mkRock(r.x,r.y,r.s-1,ch()),c2=mkRock(r.x,r.y,r.s-1,ch());c1.g=c2.g=45;rocks.push(c1,c2)}}
 function update(dt){
@@ -261,10 +267,10 @@ function update(dt){
  rockPhysics(dt);alienT-=dt;if(alienQ>0&&alienT<=0&&aliens.length<(level<4?2:level<6?3:4)&&rocks.length){spawnAlien();alienQ--;alienT=R(300,520)}updateAliens(dt);if(shield>0)shield-=dt;if(sflash>0)sflash-=dt;solidShips();updateBubble(dt);if(hyperCd>0)hyperCd-=dt;if(cloak>0)cloak-=dt;
  if(wing>0){wing-=dt;if(wing<=0){wing=0;minis=[];snd(300,.3,'sine',.06,.5)}}
  updateMinis(dt,true);
- if(!ufo)ufoT-=dt;if(!ufo&&ufoT<=0&&rocks.length&&level>=3){const left=Math.random()<.5;ufo={x:left?0:W,y:R(60,H-60),vx:left?1.6:-1.6,vy:0,t:0,sm:Math.random()<.3};ufoT=R(700,1200)}
+ if(!ufo)ufoT-=dt;if(!ufo&&ufoT<=0&&rocks.length){const left=Math.random()<.5,speed=mothershipSpeed();ufo={x:left?0:W,y:R(60,H-60),vx:left?speed:-speed,vy:0,t:0,sm:Math.random()<.3};ufoT=mothershipDelay()}
  if(ufo){ufo.x+=ufo.vx*dt;ufo.y+=ufo.vy*dt;ufo.t+=dt;if(ufo.t%50<dt)ufo.vy=R(-1.2,1.2);ufo.y=(ufo.y+H)%H;
   if(ufo.t%90<dt&&cloak<=0){let a=R(0,TAU);if(ufo.sm&&ship&&respawn<=0)a=Math.atan2(ship.y-ufo.y,ship.x-ufo.x)+R(-.25,.25);bullets.push({x:ufo.x,y:ufo.y,vx:Math.cos(a)*4,vy:Math.sin(a)*4,l:90,e:0,evil:1});snd(500,.15,'square',.04,.5)}
-  if((ufo.t>1300||!rocks.length)&&!ufo.out){ufo.out=1;ufo.vx=(ufo.vx<0?-1:1)*3.5;ufo.vy=0}if(ufo.out){if(ufo.x<-30||ufo.x>W+30)ufo=null}else{ufo.x=(ufo.x+W)%W;if(ufo.t%200<dt)ufo.vx*=Math.random()<.3?-1:1}}
+  if((ufo.t>1300||!rocks.length)&&!ufo.out){ufo.out=1;ufo.vx=(ufo.vx<0?-1:1)*3.5*(mothershipSpeed()/1.6);ufo.vy=0}if(ufo.out){if(ufo.x<-30||ufo.x>W+30)ufo=null}else{ufo.x=(ufo.x+W)%W;if(ufo.t%200<dt)ufo.vx*=Math.random()<.3?-1:1}}
  // collisions
  for(const b of bullets){if(b.e)continue;
   if(!b.evil){for(const r of rocks){if(!r.d&&Math.hypot(b.x-r.x,b.y-r.y)<r.r){b.e=1;if(b.k==='r'){blast(b.x,b.y)}else{hitRock(r,1)}break}}

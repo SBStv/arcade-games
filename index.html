@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#2e7d32">
-  <meta name="description" content="Play Finn the Frogger and Tadpole Hop, two classic-style arcade games.">
-  <title>Arcade Games — Finn the Frogger and Tadpole Hop</title>
+  <meta name="description" content="Play Finn the Frogger, Tadpole Hop, and Asteroids, three classic-style arcade games.">
+  <title>Arcade Games — Finn the Frogger, Tadpole Hop, and Asteroids</title>
   <style>
     :root {
       color-scheme: light dark;
@@ -49,6 +49,7 @@
     }
     .play:hover { background: #256b2a; transform: translateY(2px); box-shadow: 0 3px 0 #205b24; }
     .play:focus-visible { outline: 3px solid #17261a; outline-offset: 4px; }
+    .games { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
     .how-to { margin-top: 28px; font-size: 14px; }
     @media (prefers-color-scheme: dark) {
       :root { background: #0f1a12; color: #e2efe0; }
@@ -63,9 +64,12 @@
   <main>
     <div class="frog" aria-hidden="true">🐸</div>
     <h1>Arcade Games</h1>
-    <p>Choose a hopping challenge. Guide Finn through busy roads and the river, or help a tadpole dodge danger and grow into a frog.</p>
-    <a class="play" href="frogger.html">Play Finn the Frogger</a>
-    <a class="play" href="Tadpole%20Hop.html">Play Tadpole Hop</a>
+    <p>Choose an arcade challenge: guide Finn through busy roads and the river, help a tadpole grow into a frog, or blast asteroids in deep space.</p>
+    <div class="games">
+      <a class="play" href="frogger.html">Play Finn the Frogger</a>
+      <a class="play" href="Tadpole%20Hop.html">Play Tadpole Hop</a>
+      <a class="play" href="Asteroids.html">Play Asteroids</a>
+    </div>
     <p class="how-to">Use the arrow keys or WASD to hop. On touch screens, swipe or use the on-screen buttons.</p>
   </main>
 </body>

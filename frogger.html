@@ -33,6 +33,8 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .banner .police-light{animation:police-flash .5s steps(1,end) infinite alternate}
 .banner .police-light.blue{animation-delay:.25s}
 @keyframes police-flash{from{opacity:1}to{opacity:.2}}
+.home-link{position:fixed;top:max(12px,env(safe-area-inset-top));left:max(12px,env(safe-area-inset-left));z-index:10;padding:7px 10px;border:1px solid var(--ban);border-radius:8px;background:#17261a;color:#e2efe0;font-size:12px;text-decoration:none}
+.home-link:focus-visible{outline:2px solid #e2efe0;outline-offset:3px}
 .wrap{width:100%;max-width:760px;padding:16px;margin:0 auto}
 .game-layout{display:grid;grid-template-columns:72px minmax(0,480px);gap:14px;align-items:start;justify-content:center}
 .game-main{min-width:0;grid-column:2}
@@ -103,6 +105,7 @@ canvas{display:block;width:100%;height:auto;aspect-ratio:1;border-radius:10px;to
 </style>
 </head>
 <body>
+  <a class="home-link" href="index.html">← Main page</a>
 <header class="banner">
   <h1>Finn the Frogger</h1>
   <p class="subtitle" id="level-subtitle">
@@ -127,21 +130,21 @@ canvas{display:block;width:100%;height:auto;aspect-ratio:1;border-radius:10px;to
     </svg>
     <canvas class="subtitle-croc" id="level-croc-head" aria-hidden="true" hidden></canvas>
     <svg class="subtitle-frog" id="level-frog-left" viewBox="0 0 28 22" aria-hidden="true" hidden>
-      <path d="M5 14 2 16 1 19l4-1 1 3 2-3 3 2-1-4-2-2zM23 14l3 2 1 3-4-1-1 3-2-3-3 2 1-4 2-2z" fill="#b7eb66" stroke="#183b23" stroke-width="1.2" stroke-linejoin="round"/>
+      <path d="M8 16 5 18l-1 3 4-1 2 1 1-3zm12 0 3 2 1 3-4-1-2 1-1-3z" fill="#b7eb66" stroke="#183b23" stroke-width="1.2" stroke-linejoin="round"/>
       <ellipse cx="14" cy="14" rx="9" ry="6" fill="#9be34f" stroke="#183b23" stroke-width="1.3"/>
-      <path d="M7 9V6m14 3V6" stroke="#183b23" stroke-width="1.5" stroke-linecap="round"/>
-      <circle cx="7" cy="6" r="3.3" fill="#9be34f" stroke="#183b23" stroke-width="1.1"/><circle cx="21" cy="6" r="3.3" fill="#9be34f" stroke="#183b23" stroke-width="1.1"/>
-      <circle cx="7.5" cy="5.8" r="1.5" fill="#fff"/><circle cx="21.5" cy="5.8" r="1.5" fill="#fff"/>
-      <circle cx="8" cy="5.8" r=".7" fill="#17261a"/><circle cx="22" cy="5.8" r=".7" fill="#17261a"/>
+      <path d="M10 9V7m8 2V7" stroke="#183b23" stroke-width="1.5" stroke-linecap="round"/>
+      <circle cx="10" cy="6.5" r="3.2" fill="#9be34f" stroke="#183b23" stroke-width="1.1"/><circle cx="18" cy="6.5" r="3.2" fill="#9be34f" stroke="#183b23" stroke-width="1.1"/>
+      <circle cx="10.5" cy="6.3" r="1.5" fill="#fff"/><circle cx="18.5" cy="6.3" r="1.5" fill="#fff"/>
+      <circle cx="11" cy="6.3" r=".7" fill="#17261a"/><circle cx="19" cy="6.3" r=".7" fill="#17261a"/>
     </svg>
     <span id="level-name"></span>
     <svg class="subtitle-frog" id="level-frog-right" viewBox="0 0 28 22" aria-hidden="true" hidden>
-      <path d="M5 14 2 16 1 19l4-1 1 3 2-3 3 2-1-4-2-2zM23 14l3 2 1 3-4-1-1 3-2-3-3 2 1-4 2-2z" fill="#b7eb66" stroke="#183b23" stroke-width="1.2" stroke-linejoin="round"/>
+      <path d="M8 16 5 18l-1 3 4-1 2 1 1-3zm12 0 3 2 1 3-4-1-2 1-1-3z" fill="#b7eb66" stroke="#183b23" stroke-width="1.2" stroke-linejoin="round"/>
       <ellipse cx="14" cy="14" rx="9" ry="6" fill="#9be34f" stroke="#183b23" stroke-width="1.3"/>
-      <path d="M7 9V6m14 3V6" stroke="#183b23" stroke-width="1.5" stroke-linecap="round"/>
-      <circle cx="7" cy="6" r="3.3" fill="#9be34f" stroke="#183b23" stroke-width="1.1"/><circle cx="21" cy="6" r="3.3" fill="#9be34f" stroke="#183b23" stroke-width="1.1"/>
-      <circle cx="7.5" cy="5.8" r="1.5" fill="#fff"/><circle cx="21.5" cy="5.8" r="1.5" fill="#fff"/>
-      <circle cx="8" cy="5.8" r=".7" fill="#17261a"/><circle cx="22" cy="5.8" r=".7" fill="#17261a"/>
+      <path d="M10 9V7m8 2V7" stroke="#183b23" stroke-width="1.5" stroke-linecap="round"/>
+      <circle cx="10" cy="6.5" r="3.2" fill="#9be34f" stroke="#183b23" stroke-width="1.1"/><circle cx="18" cy="6.5" r="3.2" fill="#9be34f" stroke="#183b23" stroke-width="1.1"/>
+      <circle cx="10.5" cy="6.3" r="1.5" fill="#fff"/><circle cx="18.5" cy="6.3" r="1.5" fill="#fff"/>
+      <circle cx="11" cy="6.3" r=".7" fill="#17261a"/><circle cx="19" cy="6.3" r=".7" fill="#17261a"/>
     </svg>
     <canvas class="subtitle-croc" id="level-croc-tail" aria-hidden="true" hidden></canvas>
     <svg class="subtitle-vehicle" id="level-car" viewBox="0 0 28 22" aria-hidden="true" hidden><path d="M2 12h2l2-4a3 3 0 0 1 3-2h7a4 4 0 0 1 3 1.3l3 3.2h2a2 2 0 0 1 2 2v3H2z" fill="#f1c40f"/><path d="m8 8-1.5 3.5h7V7H9.2A1.5 1.5 0 0 0 8 8zm7.5-1v4.5h7L20 9a3 3 0 0 0-2-2z" fill="#26394a"/><path d="M2 14h24v2H2z" fill="#d99d13"/><circle cx="7" cy="16" r="2.4" fill="#202a34"/><circle cx="21" cy="16" r="2.4" fill="#202a34"/><circle cx="7" cy="16" r="1" fill="#9ba8b1"/><circle cx="21" cy="16" r="1" fill="#9ba8b1"/></svg>
@@ -214,6 +217,15 @@ canvas{display:block;width:100%;height:auto;aspect-ratio:1;border-radius:10px;to
         </g>
         <g transform="translate(88 36)" fill="#a9e3ed"><path d="M0 0q8-7 16 0-8 7-16 0m0 0-6-5v10z"/></g>
         <g transform="translate(19 74)" fill="#80d5e5"><path d="M0 0q7-6 14 0-7 6-14 0m0 0-5-4v8z"/></g>
+      </svg>
+    </a>
+    <a href="Asteroids.html" data-tooltip="Click to play&#10;Asteroids" aria-label="Click to play Asteroids">
+      <svg class="game-thumb" viewBox="0 0 116 92" aria-hidden="true">
+        <rect width="116" height="92" fill="#05070d"/>
+        <g fill="#e8f1ff"><circle cx="16" cy="16" r="2"/><circle cx="92" cy="19" r="2"/><circle cx="30" cy="68" r="2"/><circle cx="80" cy="75" r="2"/></g>
+        <path d="m58 22 17 42-17-8-17 8z" fill="#7cffb2" stroke="#e8f1ff" stroke-width="3" stroke-linejoin="round"/>
+        <path d="m53 58 5 12 5-12" fill="none" stroke="#ffd27a" stroke-width="3"/>
+        <path d="m22 35 13-9 10 13-7 12-15-2zM86 54l8-12 12 7-3 15-14 3z" fill="none" stroke="#a9b8d5" stroke-width="2"/>
       </svg>
     </a>
   </nav>

@@ -19,6 +19,8 @@ body{margin:0;min-height:100%;background:var(--bg);color:var(--fg);font-family:s
 .game-nav a{position:relative;display:block;width:58px;height:46px;border-radius:8px;color:var(--fg);text-decoration:none;background:var(--btn)}
 .game-nav a:hover .game-thumb{filter:brightness(1.12)}
 .game-nav a:focus-visible{outline:3px solid #238a5a;outline-offset:3px}
+.home-link{position:fixed;top:max(12px,env(safe-area-inset-top));left:max(12px,env(safe-area-inset-left));z-index:10;padding:7px 10px;border:1px solid var(--btn);border-radius:8px;background:var(--ban);color:var(--banfg);font-size:12px;text-decoration:none}
+.home-link:focus-visible{outline:2px solid var(--banfg);outline-offset:3px}
 .game-nav a::after{content:attr(data-tooltip);position:absolute;z-index:5;left:calc(100% + 8px);top:50%;transform:translateY(-50%);width:max-content;padding:6px 9px;border-radius:6px;background:#12332a;color:#fff;font-size:12px;font-weight:500;line-height:1.35;white-space:pre-line;opacity:0;visibility:hidden;pointer-events:none}
 .game-nav a:hover::after,.game-nav a:focus-visible::after{opacity:1;visibility:visible}
 .game-thumb{display:flex;flex-direction:column;justify-content:space-around;gap:2px;width:100%;height:100%;padding:3px;border:2px solid #238a5a;border-radius:8px;overflow:hidden;background:linear-gradient(to bottom,#5cb85c 0 9%,#b79a6b 9% 45%,#237c9f 45% 93%,#5cb85c 93%);font-size:8px;line-height:1}
@@ -52,6 +54,7 @@ p{margin:0;font-size:.85rem;opacity:.8;text-align:center}
 #mu{font:inherit;font-size:.85rem;border:0;border-radius:10px;padding:6px 12px;background:var(--btn);color:var(--btnfg);touch-action:manipulation}
 @media(max-width:760px){.page-layout{display:flex;flex-direction:column;align-items:stretch;gap:10px}.game-main{width:min(100%,480px);align-self:center;order:2}.game-nav{position:static;flex-direction:row;align-items:center;justify-content:flex-start;gap:8px;width:100%;margin:0;order:1}.game-nav h2{font-size:14px}.game-nav a::after{left:calc(100% + 8px)}.entry{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(92vw,420px);max-height:calc(100vh - 24px);max-height:calc(100dvh - 24px);z-index:20}}
 </style></head><body>
+<a class="home-link" href="index.html">← Main page</a>
 <header class="banner">
 <h1><svg viewBox="0 0 48 48" role="img" aria-label="Tadpole">
 <path d="M14 29C6 36 7 42 17 39c4-1 6-4 8-7" fill="none" stroke="#7ee05a" stroke-width="5" stroke-linecap="round"/>
@@ -103,6 +106,15 @@ p{margin:0;font-size:.85rem;opacity:.8;text-align:center}
 <path d="M-5 5q5 4 10 0" fill="none" stroke="#174c26" stroke-width="1.5" stroke-linecap="round"/>
 </g>
 <g transform="translate(92 67)" fill="#e75a4f"><path d="M0 0q8-7 16 0-8 7-16 0m0 0-6-5v10z"/></g>
+</svg>
+</a>
+<a href="Asteroids.html" data-tooltip="Click to play&#10;Asteroids" aria-label="Click to play Asteroids">
+<svg class="game-thumb" viewBox="0 0 116 92" aria-hidden="true">
+<rect width="116" height="92" fill="#05070d"/>
+<g fill="#e8f1ff"><circle cx="16" cy="16" r="2"/><circle cx="92" cy="19" r="2"/><circle cx="30" cy="68" r="2"/><circle cx="80" cy="75" r="2"/></g>
+<path d="m58 22 17 42-17-8-17 8z" fill="#7cffb2" stroke="#e8f1ff" stroke-width="3" stroke-linejoin="round"/>
+<path d="m53 58 5 12 5-12" fill="none" stroke="#ffd27a" stroke-width="3"/>
+<path d="m22 35 13-9 10 13-7 12-15-2zM86 54l8-12 12 7-3 15-14 3z" fill="none" stroke="#a9b8d5" stroke-width="2"/>
 </svg>
 </a>
 </nav>

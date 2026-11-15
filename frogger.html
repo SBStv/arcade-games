@@ -82,8 +82,10 @@ canvas{display:block;width:100%;height:auto;aspect-ratio:1;border-radius:10px;to
 .entry-preview .lbt th{font-size:11px;color:#b8cfb8}
 .entry-preview .lbt td{padding:1px 4px;border-top:1px solid rgba(255,255,255,.16)}
 .entry-preview .lbt tr.me td{background:#2e7d32;color:#fff}
-.entry label{display:block;font-size:13px;margin-bottom:6px}
-.entry input{width:100%;font:inherit;font-size:18px;text-align:center;padding:10px;border-radius:10px;border:2px solid #3f8f3f;background:#0f1a12;color:#fff}
+.entry-preview .score-name-editor{display:flex;align-items:center;gap:4px;min-width:0}
+.entry-preview .score-name-editor input{flex:1;min-width:0;width:100%;font:inherit;font-size:14px;text-align:left;padding:4px;border-radius:6px;border:1px solid #7ee05a;background:#0f1a12;color:#fff}
+.entry-preview .score-name-editor input:focus-visible{outline:2px solid #7ee05a;outline-offset:1px}
+.entry-preview .score-name-editor button{flex:none;font-size:11px;padding:4px 6px}
 .entry input:focus-visible{outline:3px solid #7ee05a;outline-offset:2px}
 .entry .row{display:flex;gap:8px;margin-top:12px}
 .entry button{flex:1;font:inherit;font-size:15px;padding:10px;border:0;border-radius:10px;cursor:pointer;background:#2e7d32;color:#fff}
@@ -169,21 +171,20 @@ canvas{display:block;width:100%;height:auto;aspect-ratio:1;border-radius:10px;to
       <div class="row"><button type="button" id="cgo">Restart</button><button type="button" class="sec" id="cno">Keep playing</button></div>
     </div>
     <form class="entry" id="entry" hidden autocomplete="off" aria-labelledby="entryh">
-      <h2 id="entryh">You made the leaderboard!</h2>
+      <h2 id="entryh">You made the Top 5!</h2>
       <p id="entryinfo"></p>
       <section class="entry-preview" aria-labelledby="entry-board-heading">
-        <h3 id="entry-board-heading">Top 10 with your score</h3>
+        <h3 id="entry-board-heading">Top 5 · enter your name in your position</h3>
         <table class="lbt">
           <thead><tr><th>#</th><th>Name</th><th class="num">Score</th><th class="num">Level</th></tr></thead>
           <tbody id="lbe"></tbody>
         </table>
       </section>
-      <label for="nm">Your name or initials (up to 10 characters)</label>
-      <input id="nm" type="text" maxlength="10" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done">
-      <div class="row"><button type="submit">Save score</button><button type="button" class="sec" id="skip">Skip</button></div>
+      <input id="nm" type="text" maxlength="10" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" aria-label="Your name or initials, up to 10 characters">
+      <div class="row"><button type="button" class="sec" id="skip">Skip</button></div>
     </form>
     <section class="scoreboard" id="scoreboard" hidden aria-labelledby="scoreboardh">
-      <h2 id="scoreboardh">Score saved! Top 10</h2>
+      <h2 id="scoreboardh">Score saved! Top 5</h2>
       <table class="lbt">
         <thead><tr><th>#</th><th>Name</th><th class="num">Score</th><th class="num">Level</th></tr></thead>
         <tbody id="lbb"></tbody>
@@ -894,23 +895,35 @@ function drawCard() {
   ctx.restore();
 }
 
-// Leaderboard: top 10 scores kept in the browser, with the name entered and the level reached
+// Leaderboard: top five scores kept in the browser, with the name entered and level reached
 function loadBoard() {
   try {
     const a = JSON.parse(localStorage.getItem('frogger-board') || '[]');
     if (Array.isArray(a)) return a.filter(e => e && typeof e.s === 'number' && typeof e.n === 'string')
       .map((e, i) => ({ n: e.n.slice(0, 10), s: e.s, l: +e.l || 1, id: +e.id || i }))
-      .sort((x, y) => y.s - x.s || x.id - y.id).slice(0, 10);
+      .sort((x, y) => y.s - x.s || x.id - y.id).slice(0, 5);
   } catch (e) {}
   return [];
 }
-function renderBoardRows(tb, entries, highlighted) {
+function renderBoardRows(tb, entries, highlighted, editing = false) {
   tb.textContent = '';
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 5; i++) {
     const e = entries[i], tr = document.createElement('tr');
     if (e && e === highlighted) tr.className = 'me';
-    [i + 1, e ? e.n : '\u2013', e ? e.s : '', e ? e.l : ''].forEach((v, j) => {
-      const td = document.createElement('td'); td.textContent = v; if (j > 1) td.className = 'num'; tr.appendChild(td);
+    const values = [i + 1, e ? e.n : '\u2013', e ? e.s : '', e ? e.l : ''];
+    values.forEach((value, j) => {
+      const td = document.createElement('td');
+      if (j > 1) td.className = 'num';
+      if (editing && e === highlighted && j === 1) {
+        const editor = document.createElement('span'); editor.className = 'score-name-editor';
+        const input = $('nm'); input.setAttribute('aria-label', 'Name for rank ' + (i + 1) + ', up to 10 characters');
+        editor.appendChild(input);
+        const save = document.createElement('button'); save.type = 'submit'; save.textContent = 'Save';
+        editor.appendChild(save); td.appendChild(editor);
+      } else {
+        td.textContent = value;
+      }
+      tr.appendChild(td);
     });
     tb.appendChild(tr);
   }
@@ -918,21 +931,21 @@ function renderBoardRows(tb, entries, highlighted) {
 function renderPendingBoard() {
   if (!pending) return;
   const rank = board.filter(e => e.s >= pending.s).length;
-  const preview = { n: cleanName($('nm').value) || 'Your name', s: pending.s, l: pending.l };
+  const preview = { n: '', s: pending.s, l: pending.l };
   const entries = board.slice();
   entries.splice(rank, 0, preview);
-  renderBoardRows($('lbe'), entries.slice(0, 10), preview);
+  renderBoardRows($('lbe'), entries.slice(0, 5), preview, true);
 }
 function offerScore() {
   const rank = board.filter(e => e.s >= score).length + 1;
-  const eligible = score > 0 && rank <= 10;
+  const eligible = score > 0 && rank <= 5;
   if (!eligible) {
     $('entry').hidden = true;
     entryOpen = false;
     return;
   }
   pending = { s: score, l: level };
-  $('entryh').textContent = newBest ? 'New high score!' : 'You made the leaderboard!';
+  $('entryh').textContent = newBest ? 'New high score!' : 'You made the Top 5!';
   $('entryinfo').textContent = 'Rank #' + rank + ' \u00b7 Score ' + score + ' \u00b7 Level ' + level;
   $('nm').value = savedName; renderPendingBoard(); $('entry').hidden = false; entryOpen = true; $('levels').hidden = true;
   setTimeout(() => { $('nm').focus(); $('nm').select(); }, 50);
@@ -1113,7 +1126,7 @@ $('entry').addEventListener('submit', e => {
   const n = cleanName($('nm').value) || 'Anonymous';
   savedName = n; try { localStorage.setItem('frogger-name', n); } catch (e2) {}
   const rec = { n, s: pending.s, l: pending.l, id: Date.now() };
-  board.push(rec); board.sort((a, b) => b.s - a.s || a.id - b.id); board = board.slice(0, 10);
+  board.push(rec); board.sort((a, b) => b.s - a.s || a.id - b.id); board = board.slice(0, 5);
   try { localStorage.setItem('frogger-board', JSON.stringify(board)); } catch (e2) {}
   renderBoardRows($('lbb'), board, rec);
   $('scoreboard').hidden = false;

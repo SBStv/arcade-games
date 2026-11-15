@@ -141,7 +141,7 @@ const ICO=[mkIco(0),mkIco(1)];
 const ROCK_SHAPES=[[1.08,.96,1],[.96,1.08,1.02],[1.04,.98,1.08],[.94,1.06,1.04],[1.07,1.03,.96],[.98,.94,1.08]];
 const ROCK_MESHES=ROCK_SHAPES.map((axes,shape)=>{const base=mkIco(1);return{v:base.v.map((p,i)=>{const wobble=1+Math.sin((i+1)*(shape+2)*1.71)*.05;return[p[0]*axes[0]*wobble,p[1]*axes[1]*wobble,p[2]*axes[2]*wobble]}),f:base.f}});
 function rollHp(s){if(level===1)return 1;if(level<4)return[0,1,2,3][s];const lo=[0,1,2,3][s],hi=Math.min(5,[0,3,4,5][s]+Math.floor((level-4)/3));return lo+Math.floor(Math.random()*(hi-lo+1))}
-function drawRock3(r){const M=r.s===1?ICO[0]:ROCK_MESHES[r.variant||0],rr=r.r,hc=getHR()[Math.min(r.hp,5)];
+function drawRock3(r){const M=ROCK_MESHES[r.variant||0],rr=r.r,hc=getHR()[Math.min(r.hp,5)];
  if(!r.m)r.m={rad:M.v.map(()=>R(.9,1.1)),fc:M.f.map(()=>R(-.12,.12)),cr:M.f.map(()=>Math.random()<.2),p:R(0,TAU),q:R(0,TAU),vp:R(-.01,.01),vq:R(-.01,.01),sx:R(.95,1.05),sy:R(.95,1.05),sz:R(.95,1.05)};
  const m=r.m;if(!paused){m.p+=m.vp;m.q+=m.vq}
  const cp=Math.cos(m.p),sp=Math.sin(m.p),cq=Math.cos(m.q),sq=Math.sin(m.q),ca=Math.cos(r.a),sa=Math.sin(r.a);

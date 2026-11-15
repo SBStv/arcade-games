@@ -15,6 +15,26 @@ body{margin:0;min-height:100%;background:var(--bg);color:var(--fg);font-family:s
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--ban);z-index:10}
 .banner{width:100%;background:var(--ban);color:var(--ban-fg);text-align:center;padding:14px 16px}
 .banner h1{margin:0;font-size:clamp(24px,6vw,34px);font-weight:800}
+.banner .subtitle{margin:2px 0 0;font-size:16px;font-weight:650;display:flex;align-items:center;justify-content:center;gap:8px}
+.banner .subtitle-icon{font-size:18px;line-height:1}
+.banner .subtitle-icon[hidden]{display:none}
+.banner .subtitle-reeds{width:20px;height:20px;vertical-align:middle}
+.banner .subtitle-vehicle{width:25px;height:20px;vertical-align:middle}
+.banner #level-ambulance{transform:scaleX(-1)}
+.banner .subtitle-croc{width:64px;height:16px;vertical-align:middle;flex:none;overflow:visible;filter:drop-shadow(0 1px 1px rgba(0,0,0,.8))}
+.banner .subtitle-croc[hidden]{display:none}
+.banner .subtitle.croc-body{gap:15px}
+.banner #level-croc-head{transform:scaleX(-1)}
+.banner .subtitle-frog{width:23px;height:20px;vertical-align:middle;flex:none}
+.banner .subtitle-frog[hidden]{display:none}
+.banner #level-frog-right{transform:scaleX(-1)}
+.banner .subtitle-moon{font-size:20px;color:#f5e6a8;line-height:1}
+.banner .subtitle-vehicle[hidden]{display:none}
+.banner .police-light{animation:police-flash .5s steps(1,end) infinite alternate}
+.banner .police-light.blue{animation-delay:.25s}
+@keyframes police-flash{from{opacity:1}to{opacity:.2}}
+.home-link{position:fixed;top:max(12px,env(safe-area-inset-top));left:max(12px,env(safe-area-inset-left));z-index:10;padding:7px 10px;border:1px solid var(--ban);border-radius:8px;background:#17261a;color:#e2efe0;font-size:12px;text-decoration:none}
+.home-link:focus-visible{outline:2px solid #e2efe0;outline-offset:3px}
 .wrap{width:100%;max-width:760px;padding:16px;margin:0 auto}
 .game-layout{display:grid;grid-template-columns:72px minmax(0,480px);gap:14px;align-items:start;justify-content:center}
 .game-main{min-width:0;grid-column:2}
@@ -85,8 +105,52 @@ canvas{display:block;width:100%;height:auto;aspect-ratio:1;border-radius:10px;to
 </style>
 </head>
 <body>
+  <a class="home-link" href="index.html">← Main page</a>
 <header class="banner">
   <h1>Finn the Frogger</h1>
+  <p class="subtitle" id="level-subtitle">
+    <span class="subtitle-icon" id="level-sun" aria-hidden="true" hidden>☀️</span>
+    <svg class="subtitle-vehicle" id="level-ambulance" viewBox="0 0 32 22" aria-hidden="true" hidden>
+      <path d="M2 5h17v12H2z" fill="#f7f8fa"/>
+      <path d="M19 9h6l4 4v4H19z" fill="#f7f8fa"/>
+      <path d="M21 10h3l3 3h-6z" fill="#88aebe"/>
+      <path d="M4 7h3v2H4zm0 6h3v2H4z" fill="#a9bbc4"/>
+      <path d="M10 8h2v2h2v2h-2v2h-2v-2H8v-2h2z" fill="#d62d20"/>
+      <path d="M2 16h27v2H2z" fill="#d62d20"/>
+      <circle cx="8" cy="18" r="2.5" fill="#202a34"/><circle cx="24" cy="18" r="2.5" fill="#202a34"/>
+      <circle cx="8" cy="18" r="1" fill="#aab4bb"/><circle cx="24" cy="18" r="1" fill="#aab4bb"/>
+      <rect x="11" y="3" width="4" height="2" rx="1" fill="#2879ff"/><rect x="15" y="3" width="4" height="2" rx="1" fill="#ff3045"/>
+    </svg>
+    <svg class="subtitle-vehicle" id="level-police" viewBox="0 0 34 22" aria-hidden="true" hidden>
+      <path d="M3 12h2l2-5h14l4 4h3a2 2 0 0 1 2 2v3H3z" fill="#e8edf1"/>
+      <path d="M8 8h5v3H7zM15 8v3h8l-3-3z" fill="#23344a"/>
+      <path d="M3 13h8v2H3zM18 13h12v2H18z" fill="#23344a"/>
+      <circle cx="9" cy="16" r="2.4" fill="#101722"/><circle cx="25" cy="16" r="2.4" fill="#101722"/>
+      <rect class="police-light red" x="12" y="4" width="4" height="2" rx="1" fill="#ff3045"/><rect class="police-light blue" x="16" y="4" width="4" height="2" rx="1" fill="#2879ff"/>
+    </svg>
+    <canvas class="subtitle-croc" id="level-croc-head" aria-hidden="true" hidden></canvas>
+    <svg class="subtitle-frog" id="level-frog-left" viewBox="0 0 28 22" aria-hidden="true" hidden>
+      <path d="M8 16 5 18l-1 3 4-1 2 1 1-3zm12 0 3 2 1 3-4-1-2 1-1-3z" fill="#b7eb66" stroke="#183b23" stroke-width="1.2" stroke-linejoin="round"/>
+      <ellipse cx="14" cy="14" rx="9" ry="6" fill="#9be34f" stroke="#183b23" stroke-width="1.3"/>
+      <path d="M10 9V7m8 2V7" stroke="#183b23" stroke-width="1.5" stroke-linecap="round"/>
+      <circle cx="10" cy="6.5" r="3.2" fill="#9be34f" stroke="#183b23" stroke-width="1.1"/><circle cx="18" cy="6.5" r="3.2" fill="#9be34f" stroke="#183b23" stroke-width="1.1"/>
+      <circle cx="10.5" cy="6.3" r="1.5" fill="#fff"/><circle cx="18.5" cy="6.3" r="1.5" fill="#fff"/>
+      <circle cx="11" cy="6.3" r=".7" fill="#17261a"/><circle cx="19" cy="6.3" r=".7" fill="#17261a"/>
+    </svg>
+    <span id="level-name"></span>
+    <svg class="subtitle-frog" id="level-frog-right" viewBox="0 0 28 22" aria-hidden="true" hidden>
+      <path d="M8 16 5 18l-1 3 4-1 2 1 1-3zm12 0 3 2 1 3-4-1-2 1-1-3z" fill="#b7eb66" stroke="#183b23" stroke-width="1.2" stroke-linejoin="round"/>
+      <ellipse cx="14" cy="14" rx="9" ry="6" fill="#9be34f" stroke="#183b23" stroke-width="1.3"/>
+      <path d="M10 9V7m8 2V7" stroke="#183b23" stroke-width="1.5" stroke-linecap="round"/>
+      <circle cx="10" cy="6.5" r="3.2" fill="#9be34f" stroke="#183b23" stroke-width="1.1"/><circle cx="18" cy="6.5" r="3.2" fill="#9be34f" stroke="#183b23" stroke-width="1.1"/>
+      <circle cx="10.5" cy="6.3" r="1.5" fill="#fff"/><circle cx="18.5" cy="6.3" r="1.5" fill="#fff"/>
+      <circle cx="11" cy="6.3" r=".7" fill="#17261a"/><circle cx="19" cy="6.3" r=".7" fill="#17261a"/>
+    </svg>
+    <canvas class="subtitle-croc" id="level-croc-tail" aria-hidden="true" hidden></canvas>
+    <svg class="subtitle-vehicle" id="level-car" viewBox="0 0 28 22" aria-hidden="true" hidden><path d="M2 12h2l2-4a3 3 0 0 1 3-2h7a4 4 0 0 1 3 1.3l3 3.2h2a2 2 0 0 1 2 2v3H2z" fill="#f1c40f"/><path d="m8 8-1.5 3.5h7V7H9.2A1.5 1.5 0 0 0 8 8zm7.5-1v4.5h7L20 9a3 3 0 0 0-2-2z" fill="#26394a"/><path d="M2 14h24v2H2z" fill="#d99d13"/><circle cx="7" cy="16" r="2.4" fill="#202a34"/><circle cx="21" cy="16" r="2.4" fill="#202a34"/><circle cx="7" cy="16" r="1" fill="#9ba8b1"/><circle cx="21" cy="16" r="1" fill="#9ba8b1"/></svg>
+    <span class="subtitle-icon subtitle-moon" id="level-moon" aria-hidden="true" hidden>☾</span>
+    <span class="subtitle-icon" id="level-grass" aria-hidden="true" hidden><svg class="subtitle-reeds" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 22V10M9 22V6M15 22V11M20 22V8" stroke="#a9d77b" stroke-width="1.4" stroke-linecap="round"/><path d="M4 10V6M9 6V2M15 11V7M20 8V4" stroke="#9a6b3b" stroke-width="2.4" stroke-linecap="round"/></svg></span>
+  </p>
 </header>
 <div class="wrap">
   <div class="game-layout">
@@ -155,6 +219,15 @@ canvas{display:block;width:100%;height:auto;aspect-ratio:1;border-radius:10px;to
         <g transform="translate(19 74)" fill="#80d5e5"><path d="M0 0q7-6 14 0-7 6-14 0m0 0-5-4v8z"/></g>
       </svg>
     </a>
+    <a href="Asteroids.html" data-tooltip="Click to play&#10;Asteroids" aria-label="Click to play Asteroids">
+      <svg class="game-thumb" viewBox="0 0 116 92" aria-hidden="true">
+        <rect width="116" height="92" fill="#05070d"/>
+        <g fill="#e8f1ff"><circle cx="16" cy="16" r="2"/><circle cx="92" cy="19" r="2"/><circle cx="30" cy="68" r="2"/><circle cx="80" cy="75" r="2"/></g>
+        <path d="m58 22 17 42-17-8-17 8z" fill="#7cffb2" stroke="#e8f1ff" stroke-width="3" stroke-linejoin="round"/>
+        <path d="m53 58 5 12 5-12" fill="none" stroke="#ffd27a" stroke-width="3"/>
+        <path d="m22 35 13-9 10 13-7 12-15-2zM86 54l8-12 12 7-3 15-14 3z" fill="none" stroke="#a9b8d5" stroke-width="2"/>
+      </svg>
+    </a>
   </nav>
   </div>
 </div>
@@ -198,7 +271,7 @@ function noise(dur, vol, f0, f1) {
   s.connect(f); f.connect(g); g.connect(a.destination); s.start(t);
 }
 const ribbit = () => { tone('sawtooth', 140, 240, 0.08, 0.14, 0, 800); tone('sawtooth', 190, 360, 0.11, 0.14, 0.1, 800); };
-const splash = () => { noise(0.5, 0.28, 5000, 400); tone('sine', 420, 900, 0.09, 0.15, 0.06); tone('sine', 360, 760, 0.08, 0.12, 0.18); };
+const splash = () => { noise(0.2, 0.32, 4200, 650); tone('sine', 620, 210, 0.22, 0.2); tone('sine', 980, 520, 0.1, 0.1, 0.08); tone('sine', 760, 390, 0.12, 0.08, 0.16); };
 const hit = () => { noise(0.3, 0.4, 2500, 150); tone('sawtooth', 260, 50, 0.4, 0.2); };
 const plop = () => tone('sine', 520, 110, 0.3, 0.18);
 const hop = () => tone('sawtooth', 170, 290, 0.07, 0.12, 0, 800);
@@ -325,8 +398,8 @@ const LEVELS = [
   { name: 'Sunny Meadow', homes: 2, tip: 'A gentle start: logs, turtles and slow traffic', river: 1.0, car: 0.85, croc: 0, amb: 0, sink: false, dark: 0 },
   { name: 'Rush Hour', homes: 3, tip: 'Ambulance ahead: grab its hearts for extra lives', river: 1.05, car: 1.2, croc: 0, amb: 1, sink: false, dark: 0 },
   { name: 'Croc Creek', homes: 3, tip: 'Crocodiles in the river. Lily pads sink in 2 seconds', river: 1.15, car: 1.2, croc: 0.28, amb: 1, sink: true, dark: 0 },
-  { name: 'Night Shift', homes: 4, tip: "It's dark out. Watch for headlights", river: 1.2, car: 1.4, croc: 0.35, amb: 1, sink: true, dark: 0.9 },
-  { name: 'Frog Fever', homes: 5, tip: 'Everything at once, and fast. Two ambulances!', river: 1.35, car: 1.65, croc: 0.4, amb: 2, sink: true, dark: 0.65 },
+  { name: 'Night Shift', homes: 4, tip: 'Ambulances and police patrol the dark roads', river: 1.2, car: 1.4, slowRows: [7, 8, 9], wideGapRows: [7, 8], croc: 0.35, amb: 1, police: 1, sink: true, dark: 0.9 },
+  { name: 'Frog Fever', homes: 5, tip: 'Everything at once, and fast. Two ambulances and a police car!', river: 1.35, car: 1.65, croc: 0.4, amb: 2, police: 1, sink: true, dark: 0.65 },
 ];
 // Lanes: row, kind, length (tiles), spacing (tiles), speed (tiles/sec, sign = direction)
 const LANES = [
@@ -365,6 +438,18 @@ function hud() {
   $('level').textContent = level;
   $('lives').textContent = lives > 0 ? '♥'.repeat(lives) : '–';
   $('best').textContent = Math.max(best, score);
+  $('level-name').textContent = cfg().name;
+  $('level-sun').hidden = level !== 1;
+  $('level-grass').hidden = level !== 1;
+  $('level-ambulance').toggleAttribute('hidden', level !== 2);
+  $('level-car').toggleAttribute('hidden', level !== 2);
+  $('level-moon').hidden = level !== 4;
+  $('level-police').toggleAttribute('hidden', level !== 4);
+  $('level-croc-head').toggleAttribute('hidden', level !== 3);
+  $('level-croc-tail').toggleAttribute('hidden', level !== 3);
+  $('level-subtitle').classList.toggle('croc-body', level === 3);
+  $('level-frog-left').toggleAttribute('hidden', level !== 5);
+  $('level-frog-right').toggleAttribute('hidden', level !== 5);
 }
 function start(lv = 1) {
   if (entryOpen || savedResetTimer) return;
@@ -393,12 +478,38 @@ function reachTop() {
   spawn();
 }
 
+function centerOnWaterBlock() {
+  const lane = LANES.find(l => l.row === frog.row);
+  if (!lane || lane.kind === 'car') return;
+  const center = frog.x + T / 2;
+  let nearest = null, nearestDist = Infinity;
+  for (let i = 0; i < lane.xs.length; i++) {
+    const x = lane.xs[i];
+    if (lane.kind === 'pad' && lane.ps[i].fade >= 0.9) continue;
+    if (lane.cr && lane.cr[i] && lane.cs[i].fade >= 0.9) continue;
+    if (lane.kind !== 'pad' && (center <= x + 2 || center >= x + lane.w - 2)) continue;
+    for (let block = 0; block < lane.len; block++) {
+      const snapX = x + block * T, snapCenter = snapX + T / 2;
+      if (snapX < 0 || snapX > W - T) continue;
+      if (lane.kind === 'pad' && Math.abs(center - snapCenter) > T * 1.5) continue;
+      if (lane.kind === 'log' && lane.cr[i]) {
+        const headDist = lane.v > 0 ? x + lane.w - snapCenter : snapCenter - x;
+        if (headDist < 38) continue;
+      }
+      const dist = Math.abs(snapX - frog.x);
+      if (dist < nearestDist) { nearest = snapX; nearestDist = dist; }
+    }
+  }
+  if (nearest !== null) frog.x = nearest;
+}
+
 function move(dx, dy) {
   if (state !== 'playing' || splat || card || confirmL) return;
   const ox = frog.x, orow = frog.row;
   frog.cd = 0;
   frog.x = Math.max(0, Math.min(W - T, frog.x + dx * T));
   frog.row = Math.max(0, Math.min(12, frog.row + dy));
+  if (dy !== 0 && frog.row >= 1 && frog.row <= 5) centerOnWaterBlock();
   if (frog.row < maxRow) { maxRow = frog.row; score += 10; }
   if (dy < 0 && frog.row > 0) ribbit();
   else if (frog.row > 0 && (frog.x !== ox || frog.row !== orow)) hop();
@@ -409,25 +520,44 @@ function act(dx, dy) { if (state === 'ready' || state === 'over') start(); else 
 
 const siren = () => { for (let i = 0; i < 4; i++) tone('sine', i % 2 ? 560 : 760, i % 2 ? 560 : 760, 0.28, 0.1, i * 0.3); };
 
+function roadClear(row, x, w, margin, ignore) {
+  const lane = LANES.find(l => l.row === row);
+  if (!lane || lane.xs.some(cx => cx + lane.w > x - margin && cx < x + w + margin)) return false;
+  for (const sl of ambs) {
+    const a = sl.a;
+    if (a && a !== ignore && a.warn <= 0 && Math.abs(a.y - row) < 0.6 && a.x + a.w > x - margin && a.x < x + w + margin) return false;
+  }
+  return true;
+}
+
 // Ambulances: warn with a siren and flashing edge, then speed across, weaving between lanes to dodge cars
 function updateAmb(dt) { for (const sl of ambs) ambStep(sl, dt); }
 function ambStep(sl, dt) {
   if (!sl.a) {
     if (state === 'playing' && (sl.t -= dt) <= 0) {
       const dir = Math.random() < 0.5 ? 1 : -1, row = 7 + (Math.random() * 5 | 0);
-      sl.a = { dir, x: dir > 0 ? -80 : W, y: row, to: row, w: 80, wt: 0.3, warn: 1.2, heart: lives < MAXL && Math.random() < 0.35, spared: false };
+      const w = sl.type === 'police' ? T - 4 : 80;
+      sl.a = { type: sl.type, dir, x: dir > 0 ? -w : W, y: row, to: row, w, wt: 0.3, warn: 1.2, speed: 5.2, targetSpeed: 5.2, speedTimer: 0.8, heart: sl.type === 'ambulance' && lives < MAXL && Math.random() < 0.35, spared: false };
       siren();
     }
     return;
   }
   const a = sl.a;
   if (a.warn > 0) { a.warn -= dt; return; }
-  a.x += a.dir * 7 * T * (1 + Math.max(0, level - 2) * 0.08) * dt;
   const clear = r => {
     const ln = LANES.find(q => q.row === r);
-    const lo = a.x - (a.dir < 0 ? 130 : 10), hi = a.x + a.w + (a.dir > 0 ? 130 : 10);
-    return ln.xs.every(cx => cx + ln.w < lo || cx > hi);
+    const margin = sl.type === 'police' ? 5 : 0;
+    const lookAhead = sl.type === 'police' ? 28 : 130;
+    const lo = a.x - margin - (a.dir < 0 ? lookAhead : 10), hi = a.x + a.w + margin + (a.dir > 0 ? lookAhead : 10);
+    return ln.xs.every(cx => cx + ln.w < lo || cx > hi) && roadClear(r, a.x, a.w, margin, a);
   };
+  if (sl.type === 'police') {
+    a.speedTimer -= dt;
+    if (a.speedTimer <= 0) { a.targetSpeed = 8 + Math.random() * 2.5; a.speedTimer = 0.8 + Math.random() * 1.1; }
+    if (!clear(a.to)) a.targetSpeed = Math.min(a.targetSpeed, 6.5);
+    a.speed += (a.targetSpeed - a.speed) * Math.min(1, dt * 4);
+  }
+  a.x += a.dir * (sl.type === 'police' ? a.speed : 7) * T * (1 + Math.max(0, level - 2) * 0.08) * dt;
   a.wt -= dt;
   if (a.wt <= 0 || !clear(a.to)) {
     const opts = [a.to - 1, a.to + 1].filter(r => r >= 7 && r <= 11 && clear(r));
@@ -512,10 +642,10 @@ function update(dt) {
   }
 }
 
-function rr(x, y, w, h, r) {
-  ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h);
-  ctx.fill();
+function rr(x, y, w, h, r, target = ctx) {
+  target.beginPath();
+  if (target.roundRect) target.roundRect(x, y, w, h, r); else target.rect(x, y, w, h);
+  target.fill();
 }
 function circle(x, y, r, color) { ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); }
 function drawPad(x, y, p) {
@@ -534,6 +664,30 @@ function drawOneAmb(a) {
     return;
   }
   const x = a.x, y = a.y * T + 5, w = a.w, h = T - 10;
+  if (a.type === 'police') {
+    ctx.fillStyle = '#101722'; rr(x, y, w, h, 7);
+    ctx.fillStyle = '#252f3d';
+    ctx.fillRect(x + 5, y + 4, w - 10, h - 8);
+    ctx.fillStyle = '#e8edf1';
+    ctx.fillRect(x + w * 0.28, y + 4, w * 0.44, h - 8);
+    ctx.fillStyle = '#101e30';
+    const front = a.dir > 0 ? x + w - 14 : x + 4;
+    const rear = a.dir > 0 ? x + 4 : x + w - 14;
+    ctx.fillRect(front, y + 6, 10, h - 12);
+    ctx.fillRect(rear, y + 6, 10, h - 12);
+    ctx.fillStyle = '#070b10';
+    const wheelW = w * 0.14;
+    for (const wx of [x + w * 0.27, x + w * 0.59]) {
+      ctx.fillRect(wx, y, wheelW, 4);
+      ctx.fillRect(wx, y + h - 4, wheelW, 4);
+    }
+    ctx.fillStyle = '#0c1118'; rr(x + w / 2 - 3, y + h / 2 - 6, 6, 12, 2);
+    ctx.fillStyle = flash ? '#ff3045' : '#2879ff';
+    ctx.fillRect(x + w / 2 - 2, y + h / 2 - 5, 4, 4);
+    ctx.fillStyle = flash ? '#2879ff' : '#ff3045';
+    ctx.fillRect(x + w / 2 - 2, y + h / 2 + 1, 4, 4);
+    return;
+  }
   ctx.fillStyle = '#fff'; rr(x, y, w, h, 6);
   ctx.fillStyle = '#d62d20';
   ctx.fillRect(x + 4, y + h * 0.62, w - 8, 3);
@@ -549,29 +703,41 @@ function drawOneAmb(a) {
     drawHeart(hx, hy, 9, '#ff3b5c');
   }
 }
-function drawCroc(x, y, l, i) {
+function drawCroc(x, y, l, i, target = ctx, preview = false) {
   const w = l.w, dir = l.v > 0 ? 1 : -1, hx = dir > 0 ? x + w - 38 : x;
-  const cy = y + T / 2, fcx = frog.x + T / 2;
+  const cy = y + T / 2, fcx = preview ? (dir > 0 ? x + w - T / 2 : x + T / 2) : frog.x + T / 2;
   const st = l.cs[i];
-  ctx.globalAlpha = Math.max(0, 1 - st.fade);
+  target.globalAlpha = Math.max(0, 1 - st.fade);
   const dist = dir > 0 ? x + w - fcx : fcx - x;
-  const on = frog.row === l.row && fcx > x && fcx < x + w && dist < 38 && (state === 'playing' || frog.eaten);
-  const g = 12 * (on ? Math.max(0, 1 - frog.cd / 0.25) : 0.6 + 0.4 * Math.sin(performance.now() / 260 + i * 2));
-  ctx.fillStyle = '#3f7d34'; rr(x, y + 8, w, T - 16, 9);
-  ctx.fillStyle = '#2d5e26';
-  for (let k = 10; k < w - 50; k += 14) ctx.fillRect(x + (dir > 0 ? k : k + 40), y + 12, 6, 4);
-  ctx.fillStyle = '#7a1f1f'; ctx.fillRect(hx, cy - g / 2, 38, g);
-  ctx.fillStyle = '#3f7d34';
-  ctx.fillRect(hx, y + 8, 38, cy - g / 2 - (y + 8));
-  ctx.fillRect(hx, cy + g / 2, 38, y + T - 8 - (cy + g / 2));
-  ctx.fillStyle = '#fff';
-  for (let t = 0; t < 4; t++) { const tx = hx + 4 + t * 9; ctx.fillRect(tx, cy - g / 2 - 1, 4, 4); ctx.fillRect(tx, cy + g / 2 - 3, 4, 4); }
-  ctx.fillStyle = '#2d5e26'; rr(dir > 0 ? x : x + w - 30, y + 13, 30, T - 26, 6);
-  ctx.fillStyle = '#f4d03f'; ctx.beginPath(); ctx.arc(dir > 0 ? hx + 4 : hx + 30, y + 12, 3.5, 0, 7); ctx.fill();
-  ctx.globalAlpha = 1;
+  const on = preview || (frog.row === l.row && fcx > x && fcx < x + w && dist < 38 && (state === 'playing' || frog.eaten));
+  const g = 12 * (on ? (preview ? 1 : Math.max(0, 1 - frog.cd / 0.25)) : 0.6 + 0.4 * Math.sin(performance.now() / 260 + i * 2));
+  target.fillStyle = '#3f7d34'; rr(x, y + 8, w, T - 16, 9, target);
+  target.fillStyle = '#2d5e26';
+  for (let k = 10; k < w - 50; k += 14) target.fillRect(x + (dir > 0 ? k : k + 40), y + 12, 6, 4);
+  target.fillStyle = '#7a1f1f'; target.fillRect(hx, cy - g / 2, 38, g);
+  target.fillStyle = '#3f7d34';
+  target.fillRect(hx, y + 8, 38, cy - g / 2 - (y + 8));
+  target.fillRect(hx, cy + g / 2, 38, y + T - 8 - (cy + g / 2));
+  target.fillStyle = '#fff';
+  for (let t = 0; t < 4; t++) { const tx = hx + 4 + t * 9; target.fillRect(tx, cy - g / 2 - 1, 4, 4); target.fillRect(tx, cy + g / 2 - 3, 4, 4); }
+  target.fillStyle = '#2d5e26'; rr(dir > 0 ? x : x + w - 30, y + 13, 30, T - 26, 6, target);
+  target.fillStyle = '#f4d03f'; target.beginPath(); target.arc(dir > 0 ? hx + 4 : hx + 30, y + 12, 3.5, 0, 7); target.fill();
+  target.globalAlpha = 1;
   if (st.stand > 0.3) {
-    ctx.fillStyle = 'rgba(255,255,255,.7)';
-    for (let b = 0; b < 3; b++) { ctx.beginPath(); ctx.arc(x + w / 2 + (b - 1) * 16, y + 8 + (performance.now() / 180 + b * 5) % 8, 2.2, 0, 7); ctx.fill(); }
+    target.fillStyle = 'rgba(255,255,255,.7)';
+    for (let b = 0; b < 3; b++) { target.beginPath(); target.arc(x + w / 2 + (b - 1) * 16, y + 8 + (performance.now() / 180 + b * 5) % 8, 2.2, 0, 7); target.fill(); }
+  }
+}
+function drawCrocSubtitle() {
+  for (const id of ['level-croc-head', 'level-croc-tail']) {
+    const icon = $(id), target = icon.getContext('2d'), width = 4 * T, pad = 8;
+    icon.width = width + pad * 2; icon.height = T;
+    target.save();
+    target.translate(pad, 0);
+    drawCroc(0, 0, { w: width, v: 1, row: 0, cs: [{ fade: 0, stand: 0 }] }, 0, target, true);
+    target.restore();
+    target.strokeStyle = '#54c8ee'; target.lineWidth = 2;
+    target.beginPath(); target.moveTo(0, T * 0.83); target.lineTo(icon.width, T * 0.83); target.stroke();
   }
 }
 function drawFrog(x, y, color) {
@@ -635,7 +801,7 @@ function renderLevels() {
   const top = dev ? Math.max(unlocked, LEVELS.length) : unlocked;
   if (top < 2) return;
   const lab = document.createElement('div'); lab.className = 'lvl-label'; lab.textContent = dev ? 'Start at (dev mode)' : 'Start at'; box.appendChild(lab);
-  for (let L = 2; L <= top; L++) {
+  for (let L = 1; L <= top; L++) {
     const b = document.createElement('button');
     const lname = LEVELS[Math.min(L, LEVELS.length) - 1].name;
     b.type = 'button'; b.className = 'lv'; b.disabled = (entryOpen && !dev) || !!savedResetTimer;
@@ -657,16 +823,29 @@ function renderLevels() {
 }
 
 function cfg() { return LEVELS[Math.min(level, LEVELS.length) - 1]; }
-function laneMult(l) { const c = cfg(); return (l.kind === 'car' ? c.car : c.river) * (1 + Math.max(0, level - LEVELS.length) * 0.08); }
+function laneMult(l) {
+  const c = cfg();
+  const rowSpeed = c.slowRows && c.slowRows.includes(l.row) ? 0.6 : 1;
+  return (l.kind === 'car' ? c.car * rowSpeed : c.river) * (1 + Math.max(0, level - LEVELS.length) * 0.08);
+}
 const fresh = () => ({ stand: 0, sink: false, fade: 0, gone: 0, on: false });
 function setupLevel() {
   const c = cfg();
   BAYS = bayCols(c.homes);
   for (const l of LANES) {
+    if (l.kind === 'car' && (l.row === 7 || l.row === 8)) {
+      const spacing = l.p + (c.wideGapRows && c.wideGapRows.includes(l.row) ? 1.25 : 0);
+      l.n = Math.ceil((COLS + l.len) / spacing);
+      l.span = l.n * spacing * T;
+      l.xs = Array.from({ length: l.n }, (_, i) => i * spacing * T + l.row * 70);
+    }
     if (l.kind === 'log') { l.cr = l.xs.map((_, i) => c.croc > 0 && i === 1); l.cs = l.xs.map(fresh); }
     if (l.kind === 'pad') l.ps = l.xs.map(fresh);
   }
-  ambs = Array.from({ length: c.amb }, (_, i) => ({ a: null, t: 6 + i * 4 }));
+  ambs = [
+    ...Array.from({ length: c.amb }, (_, i) => ({ type: 'ambulance', a: null, t: 6 + i * 4 })),
+    ...Array.from({ length: c.police || 0 }, (_, i) => ({ type: 'police', a: null, t: 10 + i * 4 })),
+  ];
 }
 
 // Night Shift: a dark overlay with lit patches around the frog, headlights, the ambulance and the river
@@ -948,7 +1127,7 @@ $('confirm').addEventListener('keydown', e => { if (e.key === 'Escape') closeCon
 $('nm').addEventListener('keydown', e => { if (e.key === 'Escape') closeEntry(); });
 $('nm').addEventListener('input', renderPendingBoard);
 
-board = loadBoard(); setupLevel(); spawn(); hud(); renderLevels();
+board = loadBoard(); setupLevel(); spawn(); drawCrocSubtitle(); hud(); renderLevels();
 let last = 0;
 function frame(t) {
   const dt = Math.min(0.05, (t - last) / 1000 || 0); last = t;

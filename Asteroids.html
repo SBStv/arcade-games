@@ -128,7 +128,7 @@ function drawBoard(y,editing=false){let entries=board;if(editing&&entryE){entrie
  ctx.textAlign='center'}
 function drawEntry(){ctx.textAlign='center';ctx.fillStyle='rgba(0,0,0,.6)';ctx.fillRect(0,0,W,H);ctx.fillStyle='#ffd27a';ctx.font='bold 38px ui-monospace,monospace';ctx.fillText('NEW HIGH SCORE!',W/2,H/2-110);ctx.fillStyle='#e8f1ff';ctx.font='20px ui-monospace,monospace';ctx.fillText(String(score),W/2,H/2-78);ctx.fillStyle='#7cffb2';ctx.font='16px ui-monospace,monospace';ctx.fillText('Enter your name in the highlighted Top 5 row',W/2,H/2-45);drawBoard(H/2+5,true)}
 // ---- Level names ----
-const LV=[['Outer Belt','One shot splits a rock into smaller pieces.'],['Debris Field','Colours show how many shots a rock takes.'],['The Red Ships','Red ships hide behind asteroids and fire only now and then.'],['Yellow Alert','More ships and five rock colours. Yellow ships shoot fast.'],['Hard Rain','Armoured rocks are everywhere.'],['Crimson Gauntlet','Stay close to cover and keep moving.'],['The Graveyard','Nothing out here wants to stay dead.'],['Iron Storm','Heavy rocks and heavier fire.'],['Event Horizon','The pull gets stronger.'],['Last Light','Hold the line.']];
+const LV=[['Outer Belt','One shot splits a rock into smaller pieces.'],['Debris Field','Colours show how many shots a rock takes.'],['The Red Ships','Red ships hide behind asteroids and fire only now and then.'],['Yellow Alert','More ships and five rock colours. Yellow ships shoot fast.'],['Hard Rain','Armoured rocks are everywhere.'],['The Orbital Graveyard','Three dormant giants hold rings of smaller orbiting rocks.'],['The Graveyard','Nothing out here wants to stay dead.'],['Iron Storm','Heavy rocks and heavier fire.'],['Event Horizon','The pull gets stronger.'],['Last Light','Hold the line.']];
 function lvlName(n){return LV[n-1]||['Deep Space '+n,'No one has come this far.']}
 // ---- 3D wireframe asteroids, shaded & textured ----
 let HRc=null;function getHR(){return HRc||(HRc=HC.map(c=>c?[1,3,5].map(i=>parseInt(c.slice(i,i+2),16)):[0,0,0]))}
@@ -138,11 +138,12 @@ function mkIco(sub){const t=(1+Math.sqrt(5))/2;let v=[[-1,t,0],[1,t,0],[-1,-t,0]
   for(const g of f){const a=g[0],b=g[1],c=g[2],ab=mid(a,b),bc=mid(b,c),ca=mid(c,a);nf.push([a,ab,ca],[b,bc,ab],[c,ca,bc],[ab,bc,ca])}f=nf}
  return{v,f}}
 const ICO=[mkIco(0),mkIco(1)];
-const ROCK_SHAPES=[[1.08,.96,1],[.96,1.08,1.02],[1.04,.98,1.08],[.94,1.06,1.04],[1.07,1.03,.96],[.98,.94,1.08]];
-const ROCK_MESHES=ROCK_SHAPES.map((axes,shape)=>{const base=mkIco(1);return{v:base.v.map((p,i)=>{const wobble=1+Math.sin((i+1)*(shape+2)*1.71)*.05;return[p[0]*axes[0]*wobble,p[1]*axes[1]*wobble,p[2]*axes[2]*wobble]}),f:base.f}});
+const ROCK_SHAPES=[[[1.16,.94,1],.1],[[.94,1.16,.96],.12],[[1.08,.94,1.12],.15],[[.91,1.09,1.12],.09],[[1.15,1.08,.88],.14],[[.96,.9,1.18],.13],[[1.1,1,.92],.08]];
+const ROCK_MESHES=[{...ICO[1],classic:true},...ROCK_SHAPES.map(([axes,wobble],shape)=>{const base=mkIco(1);return{v:base.v.map((p,i)=>{const wave=Math.sin((i+1)*(shape+2)*1.71)*wobble+Math.cos((i+3)*(shape+1)*.83)*wobble*.45,k=1+wave;return[p[0]*axes[0]*k,p[1]*axes[1]*k,p[2]*axes[2]*k]}),f:base.f}})];
 function rollHp(s){if(level===1)return 1;if(level<4)return[0,1,2,3][s];const lo=[0,1,2,3][s],hi=Math.min(5,[0,3,4,5][s]+Math.floor((level-4)/3));return lo+Math.floor(Math.random()*(hi-lo+1))}
+function shuffled(values){for(let i=values.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[values[i],values[j]]=[values[j],values[i]]}return values}
 function drawRock3(r){const M=ROCK_MESHES[r.variant||0],rr=r.r,hc=getHR()[Math.min(r.hp,5)];
- if(!r.m)r.m={rad:M.v.map(()=>R(.9,1.1)),fc:M.f.map(()=>R(-.12,.12)),cr:M.f.map(()=>Math.random()<.2),p:R(0,TAU),q:R(0,TAU),vp:R(-.01,.01),vq:R(-.01,.01),sx:R(.95,1.05),sy:R(.95,1.05),sz:R(.95,1.05)};
+ if(!r.m)r.m={rad:M.v.map(()=>M.classic?1:R(.9,1.1)),fc:M.f.map(()=>R(-.12,.12)),cr:M.f.map(()=>Math.random()<.2),p:R(0,TAU),q:R(0,TAU),vp:R(-.01,.01),vq:R(-.01,.01),sx:M.classic?1:R(.95,1.05),sy:M.classic?1:R(.95,1.05),sz:M.classic?1:R(.95,1.05)};
  const m=r.m;if(!paused){m.p+=m.vp;m.q+=m.vq}
  const cp=Math.cos(m.p),sp=Math.sin(m.p),cq=Math.cos(m.q),sq=Math.sin(m.q),ca=Math.cos(r.a),sa=Math.sin(r.a);
  const V=M.v.map((u,i)=>{const k=m.rad[i];let x=u[0]*k*m.sx,y=u[1]*k*m.sy,z=u[2]*k*m.sz,y1=y*cp-z*sp,z1=y*sp+z*cp;y=y1;z=z1;let x1=x*cq+z*sq;z1=-x*sq+z*cq;x=x1;z=z1;return[x*ca-y*sa,x*sa+y*ca,z]});
@@ -246,11 +247,17 @@ function drawMinis(){for(const m of minis){if(wing<150&&((wing/8)|0)%2)continue;
 function wrap(o){o.x=(o.x+W)%W;o.y=(o.y+H)%H}
 function newShip(){return{x:W/2,y:H/2,vx:0,vy:0,a:-Math.PI/2,inv:150,cool:0,thr:false}}
 function mkRock(x,y,s,hpO){const hp0=hpO||rollHp(s),sc=1+Math.min(level-1,10)*.05,n=10+(Math.random()*4|0),r=[12,22,40][s-1]*sc,sh=[];for(let i=0;i<n;i++)sh.push(R(.7,1.25));const sp=R(.6,1.4)*(4-s)*.55+.3,a=R(0,TAU);return{x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,s,r,sh,a:0,va:R(-.01,.01),hp:hp0,t0:hp0,variant:Math.random()*ROCK_MESHES.length|0,fl:0,g:0}}
-function spawnLevel(){lifeGiven=false;aliens=[];ufoT=mothershipDelay();alienQ=level>=3?(level===3?2:Math.min(level,7)):0;alienT=R(240,360);rocks=[];const n=level<5?Math.min(3+level,11):Math.max(3,6-Math.floor((level-5)/2));for(let i=0;i<n;i++){let x,y;do{x=R(0,W);y=R(0,H)}while(Math.hypot(x-W/2,y-H/2)<160);rocks.push(mkRock(x,y,3))}msgT=220}
+function spawnLevelSix(){const centers=[[210,180],[590,180],[400,440]],radii=[76,106,136],colors=shuffled([1,3,5]);rocks=[];
+ centers.forEach(([x,y],i)=>{const core=mkRock(x,y,3,colors[i]);core.vx=core.vy=core.va=0;core.stationary=true;rocks.push(core);
+  for(let j=0;j<3;j++){const a=j*TAU/3+R(-.12,.12),orbit={x,y,r:radii[j],a,speed:(.0025+j*.001)*(Math.random()<.5?-1:1)};const small=mkRock(x+Math.cos(a)*orbit.r,y+Math.sin(a)*orbit.r,1);small.vx=small.vy=0;small.orbit=orbit;rocks.push(small)}})}
+function spawnLevel(){lifeGiven=false;aliens=[];alienQ=level===6?0:level>=3?(level===3?2:Math.min(level,7)):0;alienT=R(240,360);rocks=[];
+ if(level===6){ufoT=Infinity;spawnLevelSix();msgT=220;return}
+ ufoT=mothershipDelay();const n=level<5?Math.min(3+level,11):Math.max(3,6-Math.floor((level-5)/2)),colors=shuffled([1,2,3,4,5]);
+ for(let i=0;i<n;i++){let x,y;do{x=R(0,W);y=R(0,H)}while(Math.hypot(x-W/2,y-H/2)<160);rocks.push(mkRock(x,y,3,level>=5?colors[i%colors.length]:undefined))}msgT=220}
 function startLevelWarp(){level++;warpT=WT;bullets=[];picks=[];blasts=[];aliens=[];ufo=null;weapon=null;wing=0;minis=[];shield=0;bub=null;bombWave=null;snd(300,1.8,'sawtooth',.05,6);snd(150,2,'sine',.08,8)}
 function start(startLevel=1){startMusic();picks=[];weapon=null;wing=0;minis=[];shield=0;bub=null;bombWave=null;bomb=false;hyperCd=0;cloak=0;blasts=[];warpT=0;score=0;lives=3;level=startLevel;nextLife=10000;ship=newShip();bullets=[];parts=[];ufo=null;ufoT=900;spawnLevel();state='play';paused=false}
 function renderDevLevels(){const box=document.getElementById('dev-levels');box.replaceChildren();box.hidden=!devMode||state==='entry';if(box.hidden)return;
- for(let L=1;L<=5;L++){const button=document.createElement('button');button.type='button';button.title='Start at level '+L;button.setAttribute('aria-label','Start at level '+L+' '+lvlName(L)[0]);const icon=document.createElement('canvas');icon.width=64;icon.height=48;const g=icon.getContext('2d');g.fillStyle='#05070d';g.fillRect(0,0,64,48);g.save();g.translate(30,24);g.scale(.5,.5);g.strokeStyle=HC[Math.min(L,HC.length-1)];g.fillStyle='rgba(120,145,175,.35)';g.lineWidth=2;g.beginPath();for(let i=0;i<8;i++){const a=i/8*TAU,r=24+(i%3)*3;g.lineTo(Math.cos(a)*r,Math.sin(a)*r)}g.closePath();g.fill();g.stroke();g.restore();const number=document.createElement('span');number.textContent=L;button.append(icon,number);button.addEventListener('click',()=>{button.blur();start(L)});box.appendChild(button)}
+ for(let L=1;L<=6;L++){const button=document.createElement('button');button.type='button';button.title='Start at level '+L;button.setAttribute('aria-label','Start at level '+L+' '+lvlName(L)[0]);const icon=document.createElement('canvas');icon.width=64;icon.height=48;const g=icon.getContext('2d');g.fillStyle='#05070d';g.fillRect(0,0,64,48);g.save();g.translate(30,24);g.scale(.5,.5);g.strokeStyle=HC[Math.min(L,HC.length-1)];g.fillStyle='rgba(120,145,175,.35)';g.lineWidth=2;g.beginPath();for(let i=0;i<8;i++){const a=i/8*TAU,r=24+(i%3)*3;g.lineTo(Math.cos(a)*r,Math.sin(a)*r)}g.closePath();g.fill();g.stroke();g.restore();const number=document.createElement('span');number.textContent=L;button.append(icon,number);button.addEventListener('click',()=>{button.blur();start(L)});box.appendChild(button)}
 }
 function toggleDev(){devMode=!devMode;renderDevLevels()}
 function boom(x,y,n,sp){for(let i=0;i<n;i++){const a=R(0,TAU),v=R(.5,sp||3);parts.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,l:R(25,55)})}}
@@ -276,7 +283,7 @@ function update(dt){
   ship.x+=ship.vx*dt;ship.y+=ship.vy*dt;wrap(ship);ship.cool-=dt;if(ship.inv>0)ship.inv-=dt;
   if(keys.fire)shoot();
  }
- for(const r of rocks){r.x+=r.vx*dt;r.y+=r.vy*dt;r.a+=r.va*dt;wrap(r)}
+ for(const r of rocks){if(r.orbit){r.orbit.a+=r.orbit.speed*dt;r.x=r.orbit.x+Math.cos(r.orbit.a)*r.orbit.r;r.y=r.orbit.y+Math.sin(r.orbit.a)*r.orbit.r}else if(!r.stationary){r.x+=r.vx*dt;r.y+=r.vy*dt;wrap(r)}r.a+=r.va*dt}
  for(const b of bullets){if(b.k==='r'){b.vx+=b.ax*dt;b.vy+=b.ay*dt;if(Math.random()<.8)parts.push({x:b.x,y:b.y,vx:R(-.3,.3),vy:R(-.3,.3),l:14})}b.x+=b.vx*dt;b.y+=b.vy*dt;b.l-=dt;wrap(b);if(b.l<=0){b.e=1;if(b.k==='r')blast(b.x,b.y)}}
  for(const p of parts){p.x+=p.vx*dt;p.y+=p.vy*dt;p.l-=dt}
  parts=parts.filter(p=>p.l>0);
@@ -284,10 +291,10 @@ function update(dt){
  picks.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.a+=.03*dt;p.l-=dt;wrap(p);if(ship&&respawn<=0&&Math.hypot(p.x-ship.x,p.y-ship.y)<20){p.l=0;if(p.t==='mini'){wing=1200;spawnMinis()}else if(p.t==='shield'){shield=1200}else if(p.t==='life'){lives++;snd(880,.4,'sine',.08)}else if(p.t==='bomb'){bomb=true}else weapon={type:p.t,t:1800};snd(660,.25,'sine',.07,2)}});
  picks=picks.filter(p=>p.l>0);for(const q of blasts)q.l-=dt;blasts=blasts.filter(q=>q.l>0);
  if(weapon){weapon.t-=dt;if(weapon.t<=0){weapon=null;snd(300,.3,'sine',.06,.5)}}
- rockPhysics(dt);if(!bombWave){alienT-=dt;if(alienQ>0&&alienT<=0&&aliens.length<(level<4?2:level<6?3:4)&&rocks.length){spawnAlien();alienQ--;alienT=R(300,520)}}updateAliens(dt);if(shield>0)shield-=dt;if(sflash>0)sflash-=dt;solidShips();updateBubble(dt);updateBombWave(dt);if(hyperCd>0)hyperCd-=dt;if(cloak>0)cloak-=dt;
+ rockPhysics(dt);if(!bombWave&&level!==6){alienT-=dt;if(alienQ>0&&alienT<=0&&aliens.length<(level<4?2:level<6?3:4)&&rocks.length){spawnAlien();alienQ--;alienT=R(300,520)}}updateAliens(dt);if(shield>0)shield-=dt;if(sflash>0)sflash-=dt;solidShips();updateBubble(dt);updateBombWave(dt);if(hyperCd>0)hyperCd-=dt;if(cloak>0)cloak-=dt;
  if(wing>0){wing-=dt;if(wing<=0){wing=0;minis=[];snd(300,.3,'sine',.06,.5)}}
  updateMinis(dt,true);
- if(!bombWave&&!ufo)ufoT-=dt;if(!bombWave&&!ufo&&ufoT<=0&&rocks.length){const left=Math.random()<.5,speed=mothershipSpeed();ufo={x:left?0:W,y:R(60,H-60),vx:left?speed:-speed,vy:0,t:0,sm:Math.random()<.3};ufoT=mothershipDelay()}
+ if(level!==6&&!bombWave&&!ufo)ufoT-=dt;if(level!==6&&!bombWave&&!ufo&&ufoT<=0&&rocks.length){const left=Math.random()<.5,speed=mothershipSpeed();ufo={x:left?0:W,y:R(60,H-60),vx:left?speed:-speed,vy:0,t:0,sm:Math.random()<.3};ufoT=mothershipDelay()}
  if(ufo){ufo.x+=ufo.vx*dt;ufo.y+=ufo.vy*dt;ufo.t+=dt;if(ufo.t%50<dt)ufo.vy=R(-1.2,1.2);ufo.y=(ufo.y+H)%H;
   if(ufo.t%90<dt&&cloak<=0){let a=R(0,TAU);if(ufo.sm&&ship&&respawn<=0)a=Math.atan2(ship.y-ufo.y,ship.x-ufo.x)+R(-.25,.25);bullets.push({x:ufo.x,y:ufo.y,vx:Math.cos(a)*4,vy:Math.sin(a)*4,l:90,e:0,evil:1});snd(500,.15,'square',.04,.5)}
   if((ufo.t>1300||!rocks.length)&&!ufo.out){ufo.out=1;ufo.vx=(ufo.vx<0?-1:1)*3.5*(mothershipSpeed()/1.6);ufo.vy=0}if(ufo.out){if(ufo.x<-30||ufo.x>W+30)ufo=null}else{ufo.x=(ufo.x+W)%W;if(ufo.t%200<dt)ufo.vx*=Math.random()<.3?-1:1}}

@@ -44,8 +44,10 @@ canvas{width:100%;height:auto;border-radius:12px;touch-action:none;display:block
 .lbt .num{text-align:right}
 .lbt th:first-child,.lbt td:first-child{width:2em}
 .lbt tr.me td{background:#238a5a;color:#fff;font-weight:700}
-.entry label{display:block;font-size:13px;margin-bottom:5px}
-.entry input{width:100%;font:inherit;font-size:17px;text-align:center;padding:8px;border-radius:9px;border:2px solid #238a5a;background:#0e1f1a;color:#fff}
+.entry-preview .score-name-editor{display:flex;align-items:center;gap:4px;min-width:0}
+.entry-preview .score-name-editor input{flex:1;min-width:0;width:100%;font:inherit;font-size:13px;text-align:left;padding:4px;border-radius:6px;border:1px solid #7ee05a;background:#0e1f1a;color:#fff}
+.entry-preview .score-name-editor input:focus-visible{outline:2px solid #7ee05a;outline-offset:1px}
+.entry-preview .score-name-editor button{flex:none;padding:4px 6px;font-size:11px}
 .entry .row{display:flex;gap:8px;margin-top:9px}
 .entry button{flex:1;font:inherit;font-size:14px;padding:8px;border:0;border-radius:9px;cursor:pointer;background:#238a5a;color:#fff}
 .entry button.sec{background:#263b32;color:#d8f3e6}
@@ -75,14 +77,14 @@ p{margin:0;font-size:.85rem;opacity:.8;text-align:center}
 <div class="game">
 <canvas id="c" width="480" height="520"></canvas>
 <form class="entry" id="entry" hidden autocomplete="off" aria-labelledby="entryh">
-<h2 id="entryh">You made the top 10!</h2><p id="entryinfo"></p>
-<section class="entry-preview" aria-labelledby="previewh"><h3 id="previewh">Top 10 with your score</h3>
+<h2 id="entryh">You made the Top 5!</h2><p id="entryinfo"></p>
+<section class="entry-preview" aria-labelledby="previewh"><h3 id="previewh">Top 5 · enter your name in your position</h3>
 <table class="lbt"><thead><tr><th>#</th><th>Name</th><th class="num">Score</th><th class="num">Level</th></tr></thead><tbody id="preview"></tbody></table>
 </section>
-<label for="nm">Your name or initials (up to 10 characters)</label><input id="nm" type="text" maxlength="10" autocomplete="off" autocapitalize="off" spellcheck="false">
-<div class="row"><button type="submit">Save score</button><button type="button" class="sec" id="skip">Skip</button></div>
+<input id="nm" type="text" maxlength="10" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Your name or initials, up to 10 characters">
+<div class="row"><button type="button" class="sec" id="skip">Skip</button></div>
 </form>
-<section class="scoreboard" id="scoreboard" hidden aria-labelledby="boardh"><h2 id="boardh">Score saved! Top 10</h2>
+<section class="scoreboard" id="scoreboard" hidden aria-labelledby="boardh"><h2 id="boardh">Score saved! Top 5</h2>
 <table class="lbt"><thead><tr><th>#</th><th>Name</th><th class="num">Score</th><th class="num">Level</th></tr></thead><tbody id="scores"></tbody></table></section>
 </div>
 <p>Arrow keys, WASD or swipe to move. Reach the grass to grow into a frog!</p>
@@ -248,23 +250,25 @@ if(st==="title")msg("Tadpole Hop","Swim to land and grow legs! Tap or press a ke
 if(st==="over")msg(resetTimer?"Score saved!":"Game over",resetTimer?"Starting a new game...":"Score "+score+"  Best "+hi+"  Tap to play again");
 $("score").textContent=score;$("level").textContent=level;$("lives").textContent="❤️".repeat(Math.max(0,lives));$("best").textContent=Math.max(hi,score)}
 function cleanName(value){return Array.from(value.replace(/[\u0000-\u001f\u007f]/g,"").trim()).slice(0,10).join("")}
-function loadBoard(){try{const data=JSON.parse(localStorage.getItem("tadpole-board")||"[]");if(Array.isArray(data))return data.filter(e=>e&&typeof e.s==="number"&&typeof e.n==="string").map((e,i)=>({n:e.n.slice(0,10),s:e.s,l:+e.l||1,id:+e.id||i})).sort((a,b)=>b.s-a.s||a.id-b.id).slice(0,10)}catch(e){}return []}
-function renderRows(target,entries,highlight){target.textContent="";for(let i=0;i<10;i++){const e=entries[i],tr=document.createElement("tr");if(e&&e===highlight)tr.className="me";
-for(const [j,value] of [i+1,e?e.n:"–",e?e.s:"",e?e.l:""].entries()){const td=document.createElement("td");td.textContent=value;if(j>1)td.className="num";tr.appendChild(td)}target.appendChild(tr)}}
-function renderPending(){if(!pending)return;const rank=board.filter(e=>e.s>=pending.s).length,preview={n:cleanName($("nm").value)||"Your name",s:pending.s,l:pending.l},entries=board.slice();entries.splice(rank,0,preview);renderRows($("preview"),entries.slice(0,10),preview)}
-function offerScore(){const rank=board.filter(e=>e.s>=score).length+1;if(score<=0||rank>10)return;
+function loadBoard(){try{const data=JSON.parse(localStorage.getItem("tadpole-board")||"[]");if(Array.isArray(data))return data.filter(e=>e&&typeof e.s==="number"&&typeof e.n==="string").map((e,i)=>({n:e.n.slice(0,10),s:e.s,l:+e.l||1,id:+e.id||i})).sort((a,b)=>b.s-a.s||a.id-b.id).slice(0,5)}catch(e){}return []}
+function renderRows(target,entries,highlight,editing=false){target.textContent="";for(let i=0;i<5;i++){const e=entries[i],tr=document.createElement("tr");if(e&&e===highlight)tr.className="me";
+for(const [j,value] of [i+1,e?e.n:"–",e?e.s:"",e?e.l:""].entries()){const td=document.createElement("td");if(j>1)td.className="num";
+if(editing&&e===highlight&&j===1){const editor=document.createElement("span");editor.className="score-name-editor";const input=$("nm");input.setAttribute("aria-label","Name for rank "+(i+1)+", up to 10 characters");editor.appendChild(input);
+const save=document.createElement("button");save.type="submit";save.textContent="Save";editor.appendChild(save);td.appendChild(editor)}else td.textContent=value;tr.appendChild(td)}target.appendChild(tr)}}
+function renderPending(){if(!pending)return;const rank=board.filter(e=>e.s>=pending.s).length,preview={n:"",s:pending.s,l:pending.l},entries=board.slice();entries.splice(rank,0,preview);renderRows($("preview"),entries.slice(0,5),preview,true)}
+function offerScore(){const rank=board.filter(e=>e.s>=score).length+1;if(score<=0||rank>5)return;
 let savedName="";try{savedName=localStorage.getItem("tadpole-name")||""}catch(e){}
 pending={s:score,l:level};$("entryinfo").textContent="Rank #"+rank+" · Score "+score+" · Level "+level;$("nm").value=savedName;
 renderPending();$("entry").hidden=false;entryOpen=true;setTimeout(()=>{if(entryOpen){$("nm").focus();$("nm").select()}},50)}
 function closeEntry(){ $("entry").hidden=true;entryOpen=false;pending=null}
 function resetToTitle(){resetTimer=null;$("scoreboard").hidden=true;score=0;lives=3;level=1;best=12;banner=0;flash=0;reset();spawn();st="title";stopMusic()}
 function saveScore(event){event.preventDefault();if(!pending||resetTimer)return;const n=cleanName($("nm").value)||"Anonymous";try{localStorage.setItem("tadpole-name",n)}catch(e){}
-const record={n,s:pending.s,l:pending.l,id:Date.now()};board.push(record);board.sort((a,b)=>b.s-a.s||a.id-b.id);board=board.slice(0,10);
+const record={n,s:pending.s,l:pending.l,id:Date.now()};board.push(record);board.sort((a,b)=>b.s-a.s||a.id-b.id);board=board.slice(0,5);
 try{localStorage.setItem("tadpole-board",JSON.stringify(board))}catch(e){}
 renderRows($("scores"),board,record);$("scoreboard").hidden=false;closeEntry();resetTimer=setTimeout(resetToTitle,4000)}
 function skipScore(){closeEntry()}
 board=loadBoard();try{hi=+localStorage.getItem("tadpole-best")||0}catch(e){}
-const nameInput=$("nm");nameInput.addEventListener("input",renderPending);$("entry").addEventListener("submit",saveScore);$("skip").addEventListener("click",skipScore);
+$("entry").addEventListener("submit",saveScore);$("skip").addEventListener("click",skipScore);
 function loop(t){const dt=Math.min(.05,(t-last)/1000||0);last=t;update(dt);draw();requestAnimationFrame(loop)}
 // Frog music: a bouncy swamp tune with bloopy bass, ribbits and cricket chirps (a little faster each level)
 let musicOn=true,mt=null,mStep=0,mNext=0,MG=null;

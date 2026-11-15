@@ -15,7 +15,9 @@ body{margin:0;min-height:100%;background:var(--bg);color:var(--fg);font-family:s
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--ban);z-index:10}
 .banner{width:100%;background:var(--ban);color:var(--ban-fg);text-align:center;padding:14px 16px}
 .banner h1{margin:0;font-size:clamp(24px,6vw,34px);font-weight:800}
-.banner .subtitle{margin:2px 0 0;font-size:16px;font-weight:650}
+.banner .subtitle{margin:2px 0 0;font-size:16px;font-weight:650;display:flex;align-items:center;justify-content:center;gap:8px}
+.banner .subtitle-icon{font-size:18px;line-height:1}
+.banner .subtitle-reeds{width:20px;height:20px;vertical-align:middle}
 .wrap{width:100%;max-width:760px;padding:16px;margin:0 auto}
 .game-layout{display:grid;grid-template-columns:72px minmax(0,480px);gap:14px;align-items:start;justify-content:center}
 .game-main{min-width:0;grid-column:2}
@@ -88,7 +90,7 @@ canvas{display:block;width:100%;height:auto;aspect-ratio:1;border-radius:10px;to
 <body>
 <header class="banner">
   <h1>Finn the Frogger</h1>
-  <p class="subtitle" id="level-name"></p>
+  <p class="subtitle"><span class="subtitle-icon" id="level-sun" aria-hidden="true" hidden>☀️</span><span id="level-name"></span><span class="subtitle-icon" id="level-grass" aria-hidden="true" hidden><svg class="subtitle-reeds" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 22V10M9 22V6M15 22V11M20 22V8" stroke="#a9d77b" stroke-width="1.4" stroke-linecap="round"/><path d="M4 10V6M9 6V2M15 11V7M20 8V4" stroke="#9a6b3b" stroke-width="2.4" stroke-linecap="round"/></svg></span></p>
 </header>
 <div class="wrap">
   <div class="game-layout">
@@ -368,6 +370,8 @@ function hud() {
   $('lives').textContent = lives > 0 ? '♥'.repeat(lives) : '–';
   $('best').textContent = Math.max(best, score);
   $('level-name').textContent = cfg().name;
+  $('level-sun').hidden = level !== 1;
+  $('level-grass').hidden = level !== 1;
 }
 function start(lv = 1) {
   if (entryOpen || savedResetTimer) return;

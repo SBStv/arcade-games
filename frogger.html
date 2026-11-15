@@ -15,6 +15,7 @@ body{margin:0;min-height:100%;background:var(--bg);color:var(--fg);font-family:s
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--ban);z-index:10}
 .banner{width:100%;background:var(--ban);color:var(--ban-fg);text-align:center;padding:14px 16px}
 .banner h1{margin:0;font-size:clamp(24px,6vw,34px);font-weight:800}
+.banner .subtitle{margin:2px 0 0;font-size:16px;font-weight:650}
 .wrap{width:100%;max-width:760px;padding:16px;margin:0 auto}
 .game-layout{display:grid;grid-template-columns:72px minmax(0,480px);gap:14px;align-items:start;justify-content:center}
 .game-main{min-width:0;grid-column:2}
@@ -87,6 +88,7 @@ canvas{display:block;width:100%;height:auto;aspect-ratio:1;border-radius:10px;to
 <body>
 <header class="banner">
   <h1>Finn the Frogger</h1>
+  <p class="subtitle" id="level-name"></p>
 </header>
 <div class="wrap">
   <div class="game-layout">
@@ -198,7 +200,7 @@ function noise(dur, vol, f0, f1) {
   s.connect(f); f.connect(g); g.connect(a.destination); s.start(t);
 }
 const ribbit = () => { tone('sawtooth', 140, 240, 0.08, 0.14, 0, 800); tone('sawtooth', 190, 360, 0.11, 0.14, 0.1, 800); };
-const splash = () => { noise(0.5, 0.28, 5000, 400); tone('sine', 420, 900, 0.09, 0.15, 0.06); tone('sine', 360, 760, 0.08, 0.12, 0.18); };
+const splash = () => { noise(0.2, 0.32, 4200, 650); tone('sine', 620, 210, 0.22, 0.2); tone('sine', 980, 520, 0.1, 0.1, 0.08); tone('sine', 760, 390, 0.12, 0.08, 0.16); };
 const hit = () => { noise(0.3, 0.4, 2500, 150); tone('sawtooth', 260, 50, 0.4, 0.2); };
 const plop = () => tone('sine', 520, 110, 0.3, 0.18);
 const hop = () => tone('sawtooth', 170, 290, 0.07, 0.12, 0, 800);
@@ -325,8 +327,8 @@ const LEVELS = [
   { name: 'Sunny Meadow', homes: 2, tip: 'A gentle start: logs, turtles and slow traffic', river: 1.0, car: 0.85, croc: 0, amb: 0, sink: false, dark: 0 },
   { name: 'Rush Hour', homes: 3, tip: 'Ambulance ahead: grab its hearts for extra lives', river: 1.05, car: 1.2, croc: 0, amb: 1, sink: false, dark: 0 },
   { name: 'Croc Creek', homes: 3, tip: 'Crocodiles in the river. Lily pads sink in 2 seconds', river: 1.15, car: 1.2, croc: 0.28, amb: 1, sink: true, dark: 0 },
-  { name: 'Night Shift', homes: 4, tip: "It's dark out. Watch for headlights", river: 1.2, car: 1.4, croc: 0.35, amb: 1, sink: true, dark: 0.9 },
-  { name: 'Frog Fever', homes: 5, tip: 'Everything at once, and fast. Two ambulances!', river: 1.35, car: 1.65, croc: 0.4, amb: 2, sink: true, dark: 0.65 },
+  { name: 'Night Shift', homes: 4, tip: 'Ambulances and police patrol the dark roads', river: 1.2, car: 1.4, slowRows: [7, 8, 9], wideGapRows: [7, 8], croc: 0.35, amb: 1, police: 1, sink: true, dark: 0.9 },
+  { name: 'Frog Fever', homes: 5, tip: 'Everything at once, and fast. Two ambulances and a police car!', river: 1.35, car: 1.65, croc: 0.4, amb: 2, police: 1, sink: true, dark: 0.65 },
 ];
 // Lanes: row, kind, length (tiles), spacing (tiles), speed (tiles/sec, sign = direction)
 const LANES = [
@@ -365,6 +367,7 @@ function hud() {
   $('level').textContent = level;
   $('lives').textContent = lives > 0 ? '♥'.repeat(lives) : '–';
   $('best').textContent = Math.max(best, score);
+  $('level-name').textContent = cfg().name;
 }
 function start(lv = 1) {
   if (entryOpen || savedResetTimer) return;
@@ -393,12 +396,37 @@ function reachTop() {
   spawn();
 }
 
+function centerOnWaterBlock() {
+  const lane = LANES.find(l => l.row === frog.row);
+  if (!lane || lane.kind === 'car') return;
+  const center = frog.x + T / 2;
+  let nearest = null, nearestDist = Infinity;
+  for (let i = 0; i < lane.xs.length; i++) {
+    const x = lane.xs[i];
+    if (center <= x + 2 || center >= x + lane.w - 2) continue;
+    if (lane.kind === 'pad' && lane.ps[i].fade >= 0.9) continue;
+    if (lane.cr && lane.cr[i] && lane.cs[i].fade >= 0.9) continue;
+    for (let block = 0; block < lane.len; block++) {
+      const snapX = x + block * T, snapCenter = snapX + T / 2;
+      if (snapX < 0 || snapX > W - T) continue;
+      if (lane.kind === 'log' && lane.cr[i]) {
+        const headDist = lane.v > 0 ? x + lane.w - snapCenter : snapCenter - x;
+        if (headDist < 38) continue;
+      }
+      const dist = Math.abs(snapX - frog.x);
+      if (dist < nearestDist) { nearest = snapX; nearestDist = dist; }
+    }
+  }
+  if (nearest !== null) frog.x = nearest;
+}
+
 function move(dx, dy) {
   if (state !== 'playing' || splat || card || confirmL) return;
   const ox = frog.x, orow = frog.row;
   frog.cd = 0;
   frog.x = Math.max(0, Math.min(W - T, frog.x + dx * T));
   frog.row = Math.max(0, Math.min(12, frog.row + dy));
+  if (dy < 0 && frog.row >= 1 && frog.row <= 5) centerOnWaterBlock();
   if (frog.row < maxRow) { maxRow = frog.row; score += 10; }
   if (dy < 0 && frog.row > 0) ribbit();
   else if (frog.row > 0 && (frog.x !== ox || frog.row !== orow)) hop();
@@ -409,25 +437,44 @@ function act(dx, dy) { if (state === 'ready' || state === 'over') start(); else 
 
 const siren = () => { for (let i = 0; i < 4; i++) tone('sine', i % 2 ? 560 : 760, i % 2 ? 560 : 760, 0.28, 0.1, i * 0.3); };
 
+function roadClear(row, x, w, margin, ignore) {
+  const lane = LANES.find(l => l.row === row);
+  if (!lane || lane.xs.some(cx => cx + lane.w > x - margin && cx < x + w + margin)) return false;
+  for (const sl of ambs) {
+    const a = sl.a;
+    if (a && a !== ignore && a.warn <= 0 && Math.abs(a.y - row) < 0.6 && a.x + a.w > x - margin && a.x < x + w + margin) return false;
+  }
+  return true;
+}
+
 // Ambulances: warn with a siren and flashing edge, then speed across, weaving between lanes to dodge cars
 function updateAmb(dt) { for (const sl of ambs) ambStep(sl, dt); }
 function ambStep(sl, dt) {
   if (!sl.a) {
     if (state === 'playing' && (sl.t -= dt) <= 0) {
       const dir = Math.random() < 0.5 ? 1 : -1, row = 7 + (Math.random() * 5 | 0);
-      sl.a = { dir, x: dir > 0 ? -80 : W, y: row, to: row, w: 80, wt: 0.3, warn: 1.2, heart: lives < MAXL && Math.random() < 0.35, spared: false };
+      const w = sl.type === 'police' ? T - 4 : 80;
+      sl.a = { type: sl.type, dir, x: dir > 0 ? -w : W, y: row, to: row, w, wt: 0.3, warn: 1.2, speed: 5.2, targetSpeed: 5.2, speedTimer: 0.8, heart: sl.type === 'ambulance' && lives < MAXL && Math.random() < 0.35, spared: false };
       siren();
     }
     return;
   }
   const a = sl.a;
   if (a.warn > 0) { a.warn -= dt; return; }
-  a.x += a.dir * 7 * T * (1 + Math.max(0, level - 2) * 0.08) * dt;
   const clear = r => {
     const ln = LANES.find(q => q.row === r);
-    const lo = a.x - (a.dir < 0 ? 130 : 10), hi = a.x + a.w + (a.dir > 0 ? 130 : 10);
-    return ln.xs.every(cx => cx + ln.w < lo || cx > hi);
+    const margin = sl.type === 'police' ? 5 : 0;
+    const lookAhead = sl.type === 'police' ? 28 : 130;
+    const lo = a.x - margin - (a.dir < 0 ? lookAhead : 10), hi = a.x + a.w + margin + (a.dir > 0 ? lookAhead : 10);
+    return ln.xs.every(cx => cx + ln.w < lo || cx > hi) && roadClear(r, a.x, a.w, margin, a);
   };
+  if (sl.type === 'police') {
+    a.speedTimer -= dt;
+    if (a.speedTimer <= 0) { a.targetSpeed = 8 + Math.random() * 2.5; a.speedTimer = 0.8 + Math.random() * 1.1; }
+    if (!clear(a.to)) a.targetSpeed = Math.min(a.targetSpeed, 6.5);
+    a.speed += (a.targetSpeed - a.speed) * Math.min(1, dt * 4);
+  }
+  a.x += a.dir * (sl.type === 'police' ? a.speed : 7) * T * (1 + Math.max(0, level - 2) * 0.08) * dt;
   a.wt -= dt;
   if (a.wt <= 0 || !clear(a.to)) {
     const opts = [a.to - 1, a.to + 1].filter(r => r >= 7 && r <= 11 && clear(r));
@@ -534,6 +581,30 @@ function drawOneAmb(a) {
     return;
   }
   const x = a.x, y = a.y * T + 5, w = a.w, h = T - 10;
+  if (a.type === 'police') {
+    ctx.fillStyle = '#101722'; rr(x, y, w, h, 7);
+    ctx.fillStyle = '#252f3d';
+    ctx.fillRect(x + 5, y + 4, w - 10, h - 8);
+    ctx.fillStyle = '#e8edf1';
+    ctx.fillRect(x + w * 0.28, y + 4, w * 0.44, h - 8);
+    ctx.fillStyle = '#101e30';
+    const front = a.dir > 0 ? x + w - 14 : x + 4;
+    const rear = a.dir > 0 ? x + 4 : x + w - 14;
+    ctx.fillRect(front, y + 6, 10, h - 12);
+    ctx.fillRect(rear, y + 6, 10, h - 12);
+    ctx.fillStyle = '#070b10';
+    const wheelW = w * 0.14;
+    for (const wx of [x + w * 0.27, x + w * 0.59]) {
+      ctx.fillRect(wx, y, wheelW, 4);
+      ctx.fillRect(wx, y + h - 4, wheelW, 4);
+    }
+    ctx.fillStyle = '#0c1118'; rr(x + w / 2 - 3, y + h / 2 - 6, 6, 12, 2);
+    ctx.fillStyle = flash ? '#ff3045' : '#2879ff';
+    ctx.fillRect(x + w / 2 - 2, y + h / 2 - 5, 4, 4);
+    ctx.fillStyle = flash ? '#2879ff' : '#ff3045';
+    ctx.fillRect(x + w / 2 - 2, y + h / 2 + 1, 4, 4);
+    return;
+  }
   ctx.fillStyle = '#fff'; rr(x, y, w, h, 6);
   ctx.fillStyle = '#d62d20';
   ctx.fillRect(x + 4, y + h * 0.62, w - 8, 3);
@@ -657,16 +728,29 @@ function renderLevels() {
 }
 
 function cfg() { return LEVELS[Math.min(level, LEVELS.length) - 1]; }
-function laneMult(l) { const c = cfg(); return (l.kind === 'car' ? c.car : c.river) * (1 + Math.max(0, level - LEVELS.length) * 0.08); }
+function laneMult(l) {
+  const c = cfg();
+  const rowSpeed = c.slowRows && c.slowRows.includes(l.row) ? 0.6 : 1;
+  return (l.kind === 'car' ? c.car * rowSpeed : c.river) * (1 + Math.max(0, level - LEVELS.length) * 0.08);
+}
 const fresh = () => ({ stand: 0, sink: false, fade: 0, gone: 0, on: false });
 function setupLevel() {
   const c = cfg();
   BAYS = bayCols(c.homes);
   for (const l of LANES) {
+    if (l.kind === 'car' && (l.row === 7 || l.row === 8)) {
+      const spacing = l.p + (c.wideGapRows && c.wideGapRows.includes(l.row) ? 1.25 : 0);
+      l.n = Math.ceil((COLS + l.len) / spacing);
+      l.span = l.n * spacing * T;
+      l.xs = Array.from({ length: l.n }, (_, i) => i * spacing * T + l.row * 70);
+    }
     if (l.kind === 'log') { l.cr = l.xs.map((_, i) => c.croc > 0 && i === 1); l.cs = l.xs.map(fresh); }
     if (l.kind === 'pad') l.ps = l.xs.map(fresh);
   }
-  ambs = Array.from({ length: c.amb }, (_, i) => ({ a: null, t: 6 + i * 4 }));
+  ambs = [
+    ...Array.from({ length: c.amb }, (_, i) => ({ type: 'ambulance', a: null, t: 6 + i * 4 })),
+    ...Array.from({ length: c.police || 0 }, (_, i) => ({ type: 'police', a: null, t: 10 + i * 4 })),
+  ];
 }
 
 // Night Shift: a dark overlay with lit patches around the frog, headlights, the ambulance and the river

@@ -45,9 +45,9 @@ canvas{width:100%;height:auto;border-radius:12px;touch-action:none;display:block
 .lbt th:first-child,.lbt td:first-child{width:2em}
 .lbt tr.me td{background:#238a5a;color:#fff;font-weight:700}
 .entry-preview .score-name-editor{display:flex;align-items:center;gap:4px;min-width:0}
-.entry-preview .score-name-editor input{flex:1;min-width:0;width:100%;font:inherit;font-size:13px;text-align:left;padding:4px;border-radius:6px;border:1px solid #7ee05a;background:#0e1f1a;color:#fff}
+.entry-preview .score-name-editor input{flex:1;min-width:0;width:100%;font:inherit;font-size:16px;text-align:left;padding:4px;border-radius:6px;border:1px solid #7ee05a;background:#0e1f1a;color:#fff}
 .entry-preview .score-name-editor input:focus-visible{outline:2px solid #7ee05a;outline-offset:1px}
-.entry-preview .score-name-editor button{flex:none;padding:4px 6px;font-size:11px}
+.entry-preview .score-name-editor button{flex:none;padding:4px 6px;font-size:12px}
 .entry .row{display:flex;gap:8px;margin-top:9px}
 .entry button{flex:1;font:inherit;font-size:14px;padding:8px;border:0;border-radius:9px;cursor:pointer;background:#238a5a;color:#fff}
 .entry button.sec{background:#263b32;color:#d8f3e6}
@@ -260,7 +260,7 @@ function offerScore(){const rank=board.filter(e=>e.s>=score).length+1;if(score<=
 let savedName="";try{savedName=localStorage.getItem("tadpole-name")||""}catch(e){}
 pending={s:score,l:level};$("entryinfo").textContent="Rank #"+rank+" · Score "+score+" · Level "+level;$("nm").value=savedName;
 renderPending();$("entry").hidden=false;entryOpen=true;setTimeout(()=>{if(entryOpen){$("nm").focus();$("nm").select()}},50)}
-function closeEntry(){ $("entry").hidden=true;entryOpen=false;pending=null}
+function closeEntry(){ $("nm").blur();$("entry").hidden=true;entryOpen=false;pending=null}
 function resetToTitle(){resetTimer=null;$("scoreboard").hidden=true;score=0;lives=3;level=1;best=12;banner=0;flash=0;reset();spawn();st="title";stopMusic()}
 function saveScore(event){event.preventDefault();if(!pending||resetTimer)return;const n=cleanName($("nm").value)||"Anonymous";try{localStorage.setItem("tadpole-name",n)}catch(e){}
 const record={n,s:pending.s,l:pending.l,id:Date.now()};board.push(record);board.sort((a,b)=>b.s-a.s||a.id-b.id);board=board.slice(0,5);

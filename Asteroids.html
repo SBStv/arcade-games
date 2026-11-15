@@ -15,16 +15,24 @@ canvas{display:block;width:100%;height:auto;aspect-ratio:4/3;background:#000;bor
 .pad{display:none;gap:8px;flex-wrap:wrap;justify-content:center}
 .pad button{width:52px;height:56px;border-radius:12px;border:1px solid #2a3550;background:#0d1424;color:var(--fg);font:20px inherit}
 .pad button:active{background:#1c2a48}
+.dev-levels{position:fixed;right:max(10px,env(safe-area-inset-right,0px));top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;z-index:3}
+.dev-levels[hidden]{display:none}
+.dev-levels button{position:relative;width:38px;height:32px;padding:2px;border:1px solid #2a3550;border-radius:6px;background:#0d1424;color:var(--fg);font:12px ui-monospace,Menlo,Consolas,monospace;cursor:pointer;touch-action:manipulation}
+.dev-levels button canvas{width:32px;height:24px;border:0;border-radius:0}
+.dev-levels button span{position:absolute;right:1px;bottom:0;padding:0 2px;border-radius:3px;background:#16213a;color:var(--accent);font-size:10px;line-height:12px}
+.dev-levels button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .hint{color:var(--dim);font-size:12px;text-align:center;padding:0 12px}
 .entry{display:none;position:absolute;align-items:stretch;gap:3px;z-index:2}.entry input{flex:1;min-width:0;width:0;padding:0 2px;border:1px solid #7cffb2;border-radius:2px;background:#0d1424;color:var(--fg);font:16px ui-monospace,Menlo,Consolas,monospace;text-transform:uppercase;text-align:left;user-select:text;-webkit-user-select:text}.entry button{flex:none;padding:0 2px;border:1px solid #2a3550;border-radius:3px;background:#16213a;color:var(--fg);font:12px ui-monospace,Menlo,Consolas,monospace;cursor:pointer}
 .mbtn{background:none;border:1px solid #2a3550;color:var(--dim);border-radius:8px;padding:4px 12px;font-size:12px;font-family:inherit;cursor:pointer}
 .home{position:fixed;top:12px;left:12px;z-index:2;padding:7px 10px;border:1px solid #2a3550;border-radius:8px;background:#0d1424;color:var(--fg);font:12px ui-monospace,Menlo,Consolas,monospace;text-decoration:none}
 .home:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 @media (pointer:coarse){.pad{display:flex}.hint{display:none}}
+@media (max-width:760px){.dev-levels{top:auto;right:10px;bottom:max(86px,env(safe-area-inset-bottom,0px));transform:none;flex-direction:row}}
 </style>
 </head>
 <body>
 <a class="home" href="index.html">← Main page</a>
+<div id="dev-levels" class="dev-levels" hidden aria-label="Developer level shortcuts"></div>
 <div class="game-wrap">
 <canvas id="c" width="800" height="600"></canvas>
 <div id="entry" class="entry"><input id="nm" maxlength="10" placeholder="YOUR NAME" aria-label="Your name in the Top 5 list" autocomplete="off" autocapitalize="characters" spellcheck="false"><button id="nmok" type="button">SAVE</button></div>
@@ -37,6 +45,7 @@ canvas{display:block;width:100%;height:auto;aspect-ratio:4/3;background:#000;bor
 <script>
 const cv=document.getElementById('c'),ctx=cv.getContext('2d'),W=800,H=600,TAU=Math.PI*2;
 const keys={};let state='title',paused=false,score=0,lives=3,level=1,nextLife=10000,hi=0,ship,rocks=[],bullets=[],parts=[],ufo=null,ufoT=900,respawn=0,msgT=0;
+let devMode=false;
 try{hi=+localStorage.getItem('ast_hi')||0}catch(e){}
 let ac=null;
 function snd(f,d,type,vol,slide){try{if(!ac)ac=new (window.AudioContext||window.webkitAudioContext)();const o=ac.createOscillator(),g=ac.createGain();o.type=type||'square';o.frequency.setValueAtTime(f,ac.currentTime);if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(20,f*slide),ac.currentTime+d);g.gain.setValueAtTime(vol||.05,ac.currentTime);g.gain.exponentialRampToValueAtTime(.0001,ac.currentTime+d);o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+d)}catch(e){}}
@@ -69,7 +78,7 @@ function dropPick(x,y,src){if(!src)return;lifeDrop(x,y);if(picks.length>=2||Math
 function blast(x,y){const BR=85;boom(x,y,40,6);snd(90,.6,'sawtooth',.1,.3);blasts.push({x,y,l:22});
  for(const r of rocks){if(!r.d&&Math.hypot(r.x-x,r.y-y)<BR+r.r*.5){hitRock(r,2,true)}}
  for(const al of aliens){if(!al.d&&Math.hypot(al.x-x,al.y-y)<BR)hitAlien(al,3)}
- if(ufo&&Math.hypot(ufo.x-x,ufo.y-y)<BR){boom(ufo.x,ufo.y,20,4);addScore(ufo.sm?1000:200);dropPick(ufo.x,ufo.y,1);ufo=null}}
+ if(ufo&&Math.hypot(ufo.x-x,ufo.y-y)<BR){boom(ufo.x,ufo.y,20,4);addScore(ufo.sm?1000:200);dropPick(ufo.x,ufo.y,1);bombDrop(ufo.x,ufo.y);ufo=null}}
 function doWarp(dt){warpT-=dt;const p=1-warpT/WT,k=p<.25?p/.25:p>.8?(1-p)/.2:1;
  for(const s of ws){s.r+=(4+k*34)*s.z*dt;if(s.r>620){s.r=R(5,40);s.a=R(0,TAU)}}
  if(ship){ship.x+=(W/2-ship.x)*.06*dt;ship.y+=(H/2-ship.y)*.06*dt;ship.vx*=.9;ship.vy*=.9;const d=((-Math.PI/2-ship.a+Math.PI)%TAU+TAU)%TAU-Math.PI;ship.a+=d*.08*dt;ship.thr=true;ship.inv=0}updateMinis(dt,false);
@@ -129,9 +138,11 @@ function mkIco(sub){const t=(1+Math.sqrt(5))/2;let v=[[-1,t,0],[1,t,0],[-1,-t,0]
   for(const g of f){const a=g[0],b=g[1],c=g[2],ab=mid(a,b),bc=mid(b,c),ca=mid(c,a);nf.push([a,ab,ca],[b,bc,ab],[c,ca,bc],[ab,bc,ca])}f=nf}
  return{v,f}}
 const ICO=[mkIco(0),mkIco(1)];
+const ROCK_SHAPES=[[1.08,.96,1],[.96,1.08,1.02],[1.04,.98,1.08],[.94,1.06,1.04],[1.07,1.03,.96],[.98,.94,1.08]];
+const ROCK_MESHES=ROCK_SHAPES.map((axes,shape)=>{const base=mkIco(1);return{v:base.v.map((p,i)=>{const wobble=1+Math.sin((i+1)*(shape+2)*1.71)*.05;return[p[0]*axes[0]*wobble,p[1]*axes[1]*wobble,p[2]*axes[2]*wobble]}),f:base.f}});
 function rollHp(s){if(level===1)return 1;if(level<4)return[0,1,2,3][s];const lo=[0,1,2,3][s],hi=Math.min(5,[0,3,4,5][s]+Math.floor((level-4)/3));return lo+Math.floor(Math.random()*(hi-lo+1))}
-function drawRock3(r){const M=ICO[r.s===1?0:1],rr=r.r,hc=getHR()[Math.min(r.hp,5)];
- if(!r.m)r.m={rad:M.v.map(()=>R(.78,1.22)),fc:M.f.map(()=>R(-.12,.12)),cr:M.f.map(()=>Math.random()<.2),p:R(0,TAU),q:R(0,TAU),vp:R(-.03,.03),vq:R(-.03,.03),sx:R(.85,1.15),sy:R(.85,1.15),sz:R(.85,1.15)};
+function drawRock3(r){const M=r.s===1?ICO[0]:ROCK_MESHES[r.variant||0],rr=r.r,hc=getHR()[Math.min(r.hp,5)];
+ if(!r.m)r.m={rad:M.v.map(()=>R(.9,1.1)),fc:M.f.map(()=>R(-.12,.12)),cr:M.f.map(()=>Math.random()<.2),p:R(0,TAU),q:R(0,TAU),vp:R(-.01,.01),vq:R(-.01,.01),sx:R(.95,1.05),sy:R(.95,1.05),sz:R(.95,1.05)};
  const m=r.m;if(!paused){m.p+=m.vp;m.q+=m.vq}
  const cp=Math.cos(m.p),sp=Math.sin(m.p),cq=Math.cos(m.q),sq=Math.sin(m.q),ca=Math.cos(r.a),sa=Math.sin(r.a);
  const V=M.v.map((u,i)=>{const k=m.rad[i];let x=u[0]*k*m.sx,y=u[1]*k*m.sy,z=u[2]*k*m.sz,y1=y*cp-z*sp,z1=y*sp+z*cp;y=y1;z=z1;let x1=x*cq+z*sq;z1=-x*sq+z*cq;x=x1;z=z1;return[x*ca-y*sa,x*sa+y*ca,z]});
@@ -160,7 +171,7 @@ function schedBar3(t){const ti=(level-1)%4,T=TD[ti];if(ti!==curTr){curTr=ti;mBar
  let st=0;T.mel[i].forEach(([m,d])=>{if(m){mvoice(mtof(m),t+st*S,d*S*.95,'triangle',.05,2200,.25,.5,6);[3,6].forEach((e,k)=>mvoice(mtof(m),t+(st+e)*S,d*S*.5,'triangle',.05*[.4,.18][k],1500,.1,.3,6))}st+=d});
  mBar++;return L}
 // ---- Textured rocks, solid ships, bomb bubble ----
-let bub=null,bomb=false,hyperCd=0,cloak=0,bflash=0;
+let bub=null,bombWave=null,bomb=false,hyperCd=0,cloak=0,bflash=0;
 function mothershipDelay(){const base=Math.max(300,1100-(level-1)*110);return R(base*.8,base*1.2)}
 function mothershipSpeed(){return 1.6*(1+Math.max(0,level-3)*.18)}
 function drawRock(r){const n=r.sh.length,rr=r.r,col=HC[Math.min(r.hp,6)];
@@ -179,16 +190,20 @@ function bubbleCollide(){if(!bub)return;
  const push=(o,rad)=>{let dx=o.x-bub.x,dy=o.y-bub.y;const d=Math.hypot(dx,dy)||.001,m=bub.R+rad;if(d>=m)return;dx/=d;dy/=d;o.x=bub.x+dx*m;o.y=bub.y+dy*m;if(o.vx!==undefined){const vn=o.vx*dx+o.vy*dy;if(vn<0){o.vx-=2*vn*dx;o.vy-=2*vn*dy}}};
  for(const r of rocks)push(r,r.r);for(const a of aliens)push(a,14);if(ufo)push(ufo,ufo.sm?10:16);for(const b of bullets)if(b.evil)push(b,3)}
 function updateBubble(dt){if(bflash>0)bflash-=dt;if(!bub)return;bubbleCollide();bub.t-=dt;if(bub.t<=0)detonate()}
-function useBomb(){if(!bomb||bub||!ship||respawn>0||warpT>0||state!=='play')return;bomb=false;const Rb=85;let x,y,n=0;do{x=R(Rb+20,W-Rb-20);y=R(Rb+20,H-Rb-20);n++}while(Math.hypot(x-ship.x,y-ship.y)<230&&n<40);bub={x,y,R:Rb,t:300};bubbleCollide();snd(220,.8,'sine',.09,3)}
-function detonate(){const b=bub;bub=null;bflash=30;boom(b.x,b.y,30,5);snd(70,1.2,'sawtooth',.12,.2);
- for(const r of rocks){boom(r.x,r.y,8+r.s*3,3+r.s);addScore([0,100,50,20][r.s]);r.d=1}
- for(const a of aliens){if(!a.d){boom(a.x,a.y,24,4);addScore(300);a.d=1}}
- if(ufo){boom(ufo.x,ufo.y,24,4);addScore(500);ufo=null}
- bullets=[];
- if(ship&&respawn<=0&&Math.hypot(ship.x-b.x,ship.y-b.y)>b.R-6)killShip()}
+function bombDistance(x1,y1,x2,y2){let dx=Math.abs(x1-x2)%W,dy=Math.abs(y1-y2)%H;dx=Math.min(dx,W-dx);dy=Math.min(dy,H-dy);return Math.hypot(dx,dy)}
+function useBomb(){if(!bomb||bub||bombWave||!ship||respawn>0||warpT>0||state!=='play')return;bomb=false;const Rb=55;let x,y,n=0;do{x=R(Rb+20,W-Rb-20);y=R(Rb+20,H-Rb-20);n++}while(Math.hypot(x-ship.x,y-ship.y)<230&&n<40);bub={x,y,R:Rb,t:300};bubbleCollide();snd(220,.8,'sine',.09,3)}
+function detonate(){const b=bub;if(!b)return;bub=null;bflash=30;bombWave={x:b.x,y:b.y,r:b.R,t:0,max:Math.hypot(W/2,H/2),duration:180,safeR:b.R};boom(b.x,b.y,30,5);snd(70,1.2,'sawtooth',.12,.2)}
+function updateBombWave(dt){if(!bombWave)return;const w=bombWave;w.t=Math.min(w.duration,w.t+dt);w.r=w.safeR+(w.max-w.safeR)*w.t/w.duration;
+ for(const r of rocks){if(!r.d&&bombDistance(r.x,r.y,w.x,w.y)<=w.r&&bombDistance(r.x,r.y,w.x,w.y)>w.safeR){r.d=1;boom(r.x,r.y,8+r.s*3,3+r.s);addScore([0,100,50,20][r.s])}}
+ for(const a of aliens){if(!a.d&&bombDistance(a.x,a.y,w.x,w.y)<=w.r&&bombDistance(a.x,a.y,w.x,w.y)>w.safeR){a.d=1;boom(a.x,a.y,24,4);addScore(a.kind==='y'?500:300);dropPick(a.x,a.y,2);bombDrop(a.x,a.y)}}
+ if(ufo&&bombDistance(ufo.x,ufo.y,w.x,w.y)<=w.r&&bombDistance(ufo.x,ufo.y,w.x,w.y)>w.safeR){boom(ufo.x,ufo.y,24,4);addScore(ufo.sm?1000:200);dropPick(ufo.x,ufo.y,1);bombDrop(ufo.x,ufo.y);ufo=null}
+ for(const b of bullets)if(bombDistance(b.x,b.y,w.x,w.y)<=w.r)b.e=1;
+ if(ship&&respawn<=0&&bombDistance(ship.x,ship.y,w.x,w.y)<=w.r&&bombDistance(ship.x,ship.y,w.x,w.y)>w.safeR)killShip();
+ if(w.t>=w.duration){rocks=[];aliens=[];ufo=null;bullets=[];bombWave=null;startLevelWarp()}}
 function bombDrop(x,y){if(bomb||picks.some(p=>p.t==='bomb')||Math.random()>.3)return;picks.push({x,y,vx:R(-.4,.4),vy:R(-.4,.4),t:'bomb',l:900,a:0})}
-function drawBubble(){if(!bub&&bflash<=0)return;
+function drawBubble(){if(!bub&&!bombWave&&bflash<=0)return;
  if(bub){const s=Math.ceil(bub.t/60),inside=ship&&Math.hypot(ship.x-bub.x,ship.y-bub.y)<bub.R;ctx.save();const g=ctx.createRadialGradient(bub.x,bub.y,bub.R*.2,bub.x,bub.y,bub.R);g.addColorStop(0,'rgba(120,255,200,.06)');g.addColorStop(1,'rgba(120,255,200,'+(inside?.28:.2)+')');ctx.fillStyle=g;ctx.strokeStyle=inside?'#7cffb2':'#bfffe8';ctx.shadowColor='#7cffb2';ctx.shadowBlur=18;ctx.lineWidth=2.5+Math.sin(performance.now()/90);ctx.beginPath();ctx.arc(bub.x,bub.y,bub.R,0,TAU);ctx.fill();ctx.stroke();ctx.shadowBlur=0;ctx.fillStyle='rgba(232,255,244,.9)';ctx.textAlign='center';ctx.font='bold 48px ui-monospace,monospace';ctx.fillText(s,bub.x,bub.y+16);ctx.restore()}
+ if(bombWave){ctx.save();ctx.strokeStyle='rgba(255,210,122,.95)';ctx.shadowColor='#ffd27a';ctx.shadowBlur=18;ctx.lineWidth=4;ctx.beginPath();ctx.arc(bombWave.x,bombWave.y,bombWave.r,0,TAU);ctx.stroke();ctx.restore()}
  if(bflash>0){ctx.fillStyle='rgba(230,255,240,'+(bflash/30*.7).toFixed(2)+')';ctx.fillRect(0,0,W,H)}}const HC=[0,'#e8f1ff','#7cffb2','#6fb8ff','#c58cff','#ff5c5c'],PC={laser:'#6ff3ff',rocket:'#ffb347',mini:'#7cffb2',shield:'#6fb8ff',life:'#ff7ca8',bomb:'#ffd27a'},PL={laser:'L',rocket:'R',mini:'M',shield:'S',life:'+',bomb:'B'};
 function pickType(src){if(src===1)return ['laser','rocket','mini','shield'][Math.random()*4|0];return Math.random()<.8?'laser':'rocket'}
 function lifeDrop(x,y){if(lifeGiven||Math.random()>.25)return;lifeGiven=true;picks.push({x,y,vx:R(-.4,.4),vy:R(-.4,.4),t:'life',l:900,a:0})}
@@ -230,9 +245,14 @@ function updateMinis(dt,fire){if(!ship||!minis.length)return;const t=performance
 function drawMinis(){for(const m of minis){if(wing<150&&((wing/8)|0)%2)continue;ctx.save();ctx.strokeStyle='#7cffb2';ctx.shadowColor='#7cffb2';ctx.shadowBlur=8;ctx.lineWidth=1.4;ctx.translate(m.x,m.y);ctx.rotate(m.ang);ctx.scale(.55,.55);ctx.beginPath();[[14,0],[-10,-9],[-5,0],[-10,9]].forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.closePath();ctx.stroke();ctx.restore()}}
 function wrap(o){o.x=(o.x+W)%W;o.y=(o.y+H)%H}
 function newShip(){return{x:W/2,y:H/2,vx:0,vy:0,a:-Math.PI/2,inv:150,cool:0,thr:false}}
-function mkRock(x,y,s,hpO){const hp0=hpO||rollHp(s),sc=1+Math.min(level-1,10)*.05,n=10+(Math.random()*4|0),r=[12,22,40][s-1]*sc,sh=[];for(let i=0;i<n;i++)sh.push(R(.7,1.25));const sp=R(.6,1.4)*(4-s)*.55+.3,a=R(0,TAU);return{x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,s,r,sh,a:0,va:R(-.02,.02),hp:hp0,t0:hp0,fl:0,g:0}}
-function spawnLevel(){lifeGiven=false;aliens=[];ufoT=mothershipDelay();alienQ=level>=3?(level===3?2:Math.min(level,7)):0;alienT=R(240,360);rocks=[];const n=Math.min(3+level,11);for(let i=0;i<n;i++){let x,y;do{x=R(0,W);y=R(0,H)}while(Math.hypot(x-W/2,y-H/2)<160);rocks.push(mkRock(x,y,3))}msgT=220}
-function start(){startMusic();picks=[];weapon=null;wing=0;minis=[];shield=0;bub=null;bomb=false;hyperCd=0;cloak=0;blasts=[];warpT=0;score=0;lives=3;level=1;nextLife=10000;ship=newShip();bullets=[];parts=[];ufo=null;ufoT=900;spawnLevel();state='play';paused=false}
+function mkRock(x,y,s,hpO){const hp0=hpO||rollHp(s),sc=1+Math.min(level-1,10)*.05,n=10+(Math.random()*4|0),r=[12,22,40][s-1]*sc,sh=[];for(let i=0;i<n;i++)sh.push(R(.7,1.25));const sp=R(.6,1.4)*(4-s)*.55+.3,a=R(0,TAU);return{x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,s,r,sh,a:0,va:R(-.01,.01),hp:hp0,t0:hp0,variant:Math.random()*ROCK_MESHES.length|0,fl:0,g:0}}
+function spawnLevel(){lifeGiven=false;aliens=[];ufoT=mothershipDelay();alienQ=level>=3?(level===3?2:Math.min(level,7)):0;alienT=R(240,360);rocks=[];const n=level<5?Math.min(3+level,11):Math.max(3,6-Math.floor((level-5)/2));for(let i=0;i<n;i++){let x,y;do{x=R(0,W);y=R(0,H)}while(Math.hypot(x-W/2,y-H/2)<160);rocks.push(mkRock(x,y,3))}msgT=220}
+function startLevelWarp(){level++;warpT=WT;bullets=[];picks=[];blasts=[];aliens=[];ufo=null;weapon=null;wing=0;minis=[];shield=0;bub=null;bombWave=null;snd(300,1.8,'sawtooth',.05,6);snd(150,2,'sine',.08,8)}
+function start(startLevel=1){startMusic();picks=[];weapon=null;wing=0;minis=[];shield=0;bub=null;bombWave=null;bomb=false;hyperCd=0;cloak=0;blasts=[];warpT=0;score=0;lives=3;level=startLevel;nextLife=10000;ship=newShip();bullets=[];parts=[];ufo=null;ufoT=900;spawnLevel();state='play';paused=false}
+function renderDevLevels(){const box=document.getElementById('dev-levels');box.replaceChildren();box.hidden=!devMode||state==='entry';if(box.hidden)return;
+ for(let L=1;L<=5;L++){const button=document.createElement('button');button.type='button';button.title='Start at level '+L;button.setAttribute('aria-label','Start at level '+L+' '+lvlName(L)[0]);const icon=document.createElement('canvas');icon.width=64;icon.height=48;const g=icon.getContext('2d');g.fillStyle='#05070d';g.fillRect(0,0,64,48);g.save();g.translate(30,24);g.scale(.5,.5);g.strokeStyle=HC[Math.min(L,HC.length-1)];g.fillStyle='rgba(120,145,175,.35)';g.lineWidth=2;g.beginPath();for(let i=0;i<8;i++){const a=i/8*TAU,r=24+(i%3)*3;g.lineTo(Math.cos(a)*r,Math.sin(a)*r)}g.closePath();g.fill();g.stroke();g.restore();const number=document.createElement('span');number.textContent=L;button.append(icon,number);button.addEventListener('click',()=>{button.blur();start(L)});box.appendChild(button)}
+}
+function toggleDev(){devMode=!devMode;renderDevLevels()}
 function boom(x,y,n,sp){for(let i=0;i<n;i++){const a=R(0,TAU),v=R(.5,sp||3);parts.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,l:R(25,55)})}}
 function addScore(p){score+=p;if(score>=nextLife){lives++;nextLife+=10000;snd(880,.4,'sine',.07)}if(score>hi){hi=score;try{localStorage.setItem('ast_hi',hi)}catch(e){}}}
 function shoot(){if(weapon&&ship&&respawn<=0){return shootSpecial()}shootBasic()}
@@ -264,10 +284,10 @@ function update(dt){
  picks.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.a+=.03*dt;p.l-=dt;wrap(p);if(ship&&respawn<=0&&Math.hypot(p.x-ship.x,p.y-ship.y)<20){p.l=0;if(p.t==='mini'){wing=1200;spawnMinis()}else if(p.t==='shield'){shield=1200}else if(p.t==='life'){lives++;snd(880,.4,'sine',.08)}else if(p.t==='bomb'){bomb=true}else weapon={type:p.t,t:1800};snd(660,.25,'sine',.07,2)}});
  picks=picks.filter(p=>p.l>0);for(const q of blasts)q.l-=dt;blasts=blasts.filter(q=>q.l>0);
  if(weapon){weapon.t-=dt;if(weapon.t<=0){weapon=null;snd(300,.3,'sine',.06,.5)}}
- rockPhysics(dt);alienT-=dt;if(alienQ>0&&alienT<=0&&aliens.length<(level<4?2:level<6?3:4)&&rocks.length){spawnAlien();alienQ--;alienT=R(300,520)}updateAliens(dt);if(shield>0)shield-=dt;if(sflash>0)sflash-=dt;solidShips();updateBubble(dt);if(hyperCd>0)hyperCd-=dt;if(cloak>0)cloak-=dt;
+ rockPhysics(dt);if(!bombWave){alienT-=dt;if(alienQ>0&&alienT<=0&&aliens.length<(level<4?2:level<6?3:4)&&rocks.length){spawnAlien();alienQ--;alienT=R(300,520)}}updateAliens(dt);if(shield>0)shield-=dt;if(sflash>0)sflash-=dt;solidShips();updateBubble(dt);updateBombWave(dt);if(hyperCd>0)hyperCd-=dt;if(cloak>0)cloak-=dt;
  if(wing>0){wing-=dt;if(wing<=0){wing=0;minis=[];snd(300,.3,'sine',.06,.5)}}
  updateMinis(dt,true);
- if(!ufo)ufoT-=dt;if(!ufo&&ufoT<=0&&rocks.length){const left=Math.random()<.5,speed=mothershipSpeed();ufo={x:left?0:W,y:R(60,H-60),vx:left?speed:-speed,vy:0,t:0,sm:Math.random()<.3};ufoT=mothershipDelay()}
+ if(!bombWave&&!ufo)ufoT-=dt;if(!bombWave&&!ufo&&ufoT<=0&&rocks.length){const left=Math.random()<.5,speed=mothershipSpeed();ufo={x:left?0:W,y:R(60,H-60),vx:left?speed:-speed,vy:0,t:0,sm:Math.random()<.3};ufoT=mothershipDelay()}
  if(ufo){ufo.x+=ufo.vx*dt;ufo.y+=ufo.vy*dt;ufo.t+=dt;if(ufo.t%50<dt)ufo.vy=R(-1.2,1.2);ufo.y=(ufo.y+H)%H;
   if(ufo.t%90<dt&&cloak<=0){let a=R(0,TAU);if(ufo.sm&&ship&&respawn<=0)a=Math.atan2(ship.y-ufo.y,ship.x-ufo.x)+R(-.25,.25);bullets.push({x:ufo.x,y:ufo.y,vx:Math.cos(a)*4,vy:Math.sin(a)*4,l:90,e:0,evil:1});snd(500,.15,'square',.04,.5)}
   if((ufo.t>1300||!rocks.length)&&!ufo.out){ufo.out=1;ufo.vx=(ufo.vx<0?-1:1)*3.5*(mothershipSpeed()/1.6);ufo.vy=0}if(ufo.out){if(ufo.x<-30||ufo.x>W+30)ufo=null}else{ufo.x=(ufo.x+W)%W;if(ufo.t%200<dt)ufo.vx*=Math.random()<.3?-1:1}}
@@ -275,7 +295,7 @@ function update(dt){
  for(const b of bullets){if(b.e)continue;
   if(!b.evil){for(const r of rocks){if(!r.d&&Math.hypot(b.x-r.x,b.y-r.y)<r.r){b.e=1;if(b.k==='r'){blast(b.x,b.y)}else{hitRock(r,1)}break}}
    if(!b.e){for(const al of aliens){if(!al.d&&Math.hypot(b.x-al.x,b.y-al.y)<16){b.e=1;if(b.k==='r'){blast(b.x,b.y)}else{hitAlien(al,1)}break}}}
-   if(!b.e&&ufo&&Math.hypot(b.x-ufo.x,b.y-ufo.y)<16){b.e=1;boom(ufo.x,ufo.y,20,4);snd(160,.5,'sawtooth',.08,.4);addScore(ufo.sm?1000:200);dropPick(ufo.x,ufo.y,1);ufo=null}}
+   if(!b.e&&ufo&&Math.hypot(b.x-ufo.x,b.y-ufo.y)<16){b.e=1;boom(ufo.x,ufo.y,20,4);snd(160,.5,'sawtooth',.08,.4);addScore(ufo.sm?1000:200);dropPick(ufo.x,ufo.y,1);bombDrop(ufo.x,ufo.y);ufo=null}}
   else{for(const r of rocks){if(!r.d&&Math.hypot(b.x-r.x,b.y-r.y)<r.r){b.e=1;break}}if(!b.e&&ship&&respawn<=0){const dd=Math.hypot(b.x-ship.x,b.y-ship.y);if(shield>0&&dd<22){b.e=1;sflash=8;snd(500,.1,'sine',.05,1.8)}else if(ship.inv<=0&&dd<10){b.e=1;killShip()}}}}
  rocks=rocks.filter(r=>!r.d);bullets=bullets.filter(b=>!b.e);
  if(ship&&respawn<=0&&ship.inv<=0){
@@ -283,7 +303,7 @@ function update(dt){
   if(respawn<=0)for(const al of aliens){if(!al.d&&Math.hypot(al.x-ship.x,al.y-ship.y)<20){al.d=1;boom(al.x,al.y,16,4);killShip();break}}
   if(respawn<=0&&ufo&&Math.hypot(ufo.x-ship.x,ufo.y-ship.y)<22){boom(ufo.x,ufo.y,20,4);ufo=null;killShip()}
   rocks=rocks.filter(r=>!r.d)}
- if(!rocks.length&&!ufo&&!aliens.length&&state==='play'){level++;warpT=WT;bullets=[];picks=[];blasts=[];aliens=[];weapon=null;wing=0;minis=[];shield=0;bub=null;snd(300,1.8,'sawtooth',.05,6);snd(150,2,'sine',.08,8)}
+ if(warpT<=0&&!bombWave&&!rocks.length&&!ufo&&!aliens.length&&state==='play')startLevelWarp()
 }
 function line(pts,close){ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));if(close)ctx.closePath();ctx.stroke()}
 function drawShip(x,y,a,flame){ctx.save();ctx.translate(x,y);ctx.rotate(a);line([[14,0],[-10,-9],[-5,0],[-10,9]],true);if(flame)line([[-7,-4],[-16-Math.random()*6,0],[-7,4]]);ctx.restore()}
@@ -313,11 +333,13 @@ function draw(){
 }
 // demo rocks on title
 rocks=[mkRock(150,120,3),mkRock(650,420,3),mkRock(400,500,2),mkRock(600,100,2)];ship=newShip();
+renderDevLevels();
 let last=performance.now();
 function loop(t){const dt=Math.min(3,(t-last)/16.667);last=t;if(state!=='play'){for(const r of rocks){r.x+=r.vx*dt;r.y+=r.vy*dt;r.a+=r.va*dt;wrap(r)}}update(dt);draw();requestAnimationFrame(loop)}
 requestAnimationFrame(loop);
 const map={ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',ArrowUp:'up',KeyW:'up',Space:'fire'};
 addEventListener('keydown',e=>{if(state==='entry')return;if(map[e.code]||e.code==='Enter'||e.code==='KeyH'||e.code==='KeyP')e.preventDefault();
+ if(e.shiftKey&&e.code==='KeyD'&&!e.ctrlKey&&!e.metaKey&&!e.altKey){e.preventDefault();if(!e.repeat)toggleDev();return}
  if(map[e.code])keys[map[e.code]]=true;
  if(e.code==='Enter'&&state!=='play')start();
  if(e.code==='Space'&&state!=='play'&&!e.repeat)start();
